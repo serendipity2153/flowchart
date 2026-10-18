@@ -1,0 +1,931 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>流程圖練習器</title>
+<link href="https://fonts.googleapis.com/css2?family=LXGW+WenKai+TC:wght@300;400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --primary:#C1B2A3;--primary-pressed:#AD9D8C;--on-primary:#1C1A17;--link:#D8CCBF;
+  --bg:#1C1A17;--surface:#262320;--border:#3D3833;--border-strong:#57504A;
+  --text:#F3EEE7;--text-2:#D9D0C5;--muted:#A89E92;--faint:#7A7066;
+  --success:#8FBF8A;--success-soft:#B5D9B1;--warning:#E0B35C;--danger:#E07A6B;--danger-soft:#F0B3A9;--danger-bg:#3A2724;
+  --terminal:#9DBF9E;--terminal-bg:#27342A;--io:#E0B35C;--io-bg:#3A3122;--process:#8FA9C9;--process-bg:#232B36;--decision:#C49AB8;--decision-bg:#332733;--decision-soft:#DCC0D3;
+  --arrow:#A89E92;--radius:8px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--text);font-family:'LXGW WenKai TC',system-ui,-apple-system,'PingFang TC','Microsoft JhengHei',sans-serif;font-size:16px;line-height:1.6;overflow:hidden}
+button{font-family:inherit;font-size:15px;cursor:pointer;border-radius:var(--radius);border:1px solid var(--border-strong);background:transparent;color:var(--text-2);padding:9px 16px;min-height:40px}
+button:hover{border-color:var(--primary);color:var(--text)}
+button.primary{background:var(--primary);color:var(--on-primary);border-color:var(--primary);font-weight:700;padding:10px 24px}
+button.primary:hover{background:var(--primary-pressed)}
+button:disabled{background:var(--border);color:var(--faint);border-color:var(--border);cursor:not-allowed}
+button.ghost{border-color:transparent;color:var(--muted)}
+button.ghost:hover{border-color:var(--border-strong)}
+button.sm{padding:6px 12px;min-height:32px;font-size:13px}
+input,select{font-family:inherit;font-size:15px;background:var(--bg);color:var(--text);border:1px solid var(--border-strong);border-radius:var(--radius);padding:8px 10px;min-height:40px}
+input:focus,select:focus{outline:2px solid var(--primary);outline-offset:1px}
+a{color:var(--link)}
+#app{height:100%;display:flex;flex-direction:column}
+.topbar{height:56px;flex:none;padding:0 20px 0 24px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:16px}
+.topbar .left,.topbar .right{display:flex;align-items:center;gap:10px;min-width:0}
+.logo{width:28px;height:28px;border-radius:8px;background:var(--primary);display:flex;align-items:center;justify-content:center;flex:none;border:0;padding:0;min-height:0}
+.logo svg{display:block}
+.brand{font-size:16px;font-weight:700;white-space:nowrap}
+.sub{font-size:14px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.steps{display:flex;gap:6px}
+.chip{font-size:13px;padding:3px 11px;border-radius:999px;border:1px solid var(--border);color:var(--muted);white-space:nowrap}
+.chip.done{background:rgba(143,191,138,.18);color:var(--success-soft);border-color:transparent}
+.chip.now{background:var(--primary);color:var(--on-primary);border-color:var(--primary);font-weight:700}
+.chip.mode{background:rgba(157,191,158,.18);color:#B9D4B9;border-color:transparent}
+.chip.bad{background:rgba(224,122,107,.18);color:var(--danger-soft);border-color:transparent}
+.page{flex:1;overflow:auto;min-height:0}
+.wrap{max-width:1120px;margin:0 auto;padding:32px 28px 48px;display:flex;flex-direction:column;gap:28px}
+h1{margin:0;font-size:30px;font-weight:700;line-height:1.3}
+h2{margin:0;font-size:20px;font-weight:700}
+p{margin:0}
+.muted{color:var(--muted)}
+.faint{color:var(--faint)}
+.small{font-size:13px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px 24px}
+.grid4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.modecard{text-align:left;padding:18px;min-height:128px;border-radius:14px;background:var(--surface);display:flex;flex-direction:column;gap:8px;align-items:flex-start}
+.modecard.sel{border:2px solid var(--primary)}
+.modecard .ic{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center}
+.modecard .t{font-size:17px;font-weight:700;color:var(--text)}
+.modecard .d{font-size:13px;color:var(--muted);line-height:1.5}
+.qcard{text-align:left;padding:14px 16px;min-height:88px;border-radius:12px;background:var(--surface);display:flex;flex-direction:column;justify-content:space-between;gap:8px;align-items:flex-start;color:var(--text)}
+.qcard .t{font-size:16px}
+.tag{font-size:12px;padding:1px 10px;border-radius:999px}
+.tag.seq{background:rgba(143,169,201,.18);color:#AFC3DB}
+.tag.dec{background:rgba(196,154,184,.18);color:var(--decision-soft)}
+.tag.ok{background:rgba(143,191,138,.18);color:var(--success-soft)}
+.legend{display:flex;align-items:center;gap:22px;flex-wrap:wrap;padding:14px 20px}
+.legend .it{display:flex;align-items:center;gap:10px;font-size:14px}
+.sw{width:34px;height:18px;border:2px solid}
+.sw.terminal{border-radius:999px;border-color:var(--terminal);background:var(--terminal-bg)}
+.sw.io{border-color:var(--io);background:var(--io-bg);transform:skewX(-14deg)}
+.sw.process{border-radius:4px;border-color:var(--process);background:var(--process-bg)}
+.sw.decision{width:22px;height:22px;border-color:var(--decision);background:var(--decision-bg);transform:rotate(45deg) scale(.8);margin:0 6px}
+.who{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.who input{width:110px}
+.who input.name{width:150px}
+.two{display:flex;flex-wrap:wrap;gap:28px;align-items:flex-start}
+.two>.l{flex:1 1 300px;min-width:0;display:flex;flex-direction:column;gap:14px}
+.two>.r{flex:999 1 520px;min-width:0;display:flex;flex-direction:column;gap:16px}
+.story{font-size:18px;line-height:1.75}
+.hintbox{background:rgba(193,178,163,.1);border:1px solid rgba(193,178,163,.4);border-radius:14px;padding:16px 20px;display:flex;flex-direction:column;gap:6px}
+.q{display:flex;flex-direction:column;gap:12px}
+.q.ok{border-color:var(--success)}
+.q.bad{border-color:var(--danger)}
+.q .head{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.q .head .t{font-size:17px;font-weight:700}
+.opts{display:flex;flex-wrap:wrap;gap:8px}
+.opt{padding:7px 14px;border-radius:999px;font-size:14px;min-height:36px}
+.opt.sel{border:2px solid var(--primary);background:rgba(193,178,163,.2);color:var(--text)}
+.opt.ok{border:2px solid var(--success);background:rgba(143,191,138,.18);color:var(--text)}
+.opt.bad{border:2px solid var(--danger);background:rgba(224,122,107,.18);color:var(--text)}
+.opt.big{border-radius:10px;padding:9px 22px;font-size:15px}
+.fb{font-size:14px}
+.fb.bad{color:var(--danger-soft)}
+.fb.ok{color:var(--success-soft)}
+.actions{display:flex;justify-content:flex-end;gap:12px;align-items:center;flex-wrap:wrap}
+.pool{display:flex;flex-wrap:wrap;gap:10px;min-height:48px}
+.scard{padding:9px 14px;border-radius:10px;background:var(--border);border:1px solid var(--border-strong);font-size:15px;cursor:grab;user-select:none;touch-action:none}
+.scard.sel{outline:2px solid var(--primary);outline-offset:2px}
+.scard.dragging{opacity:.4}
+.cols{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
+.col{border-radius:14px;border:2px dashed;padding:14px;min-height:260px;display:flex;flex-direction:column;gap:10px;cursor:pointer}
+.col.over{background:rgba(255,255,255,.04)}
+.col .h{display:flex;flex-direction:column;align-items:center;gap:6px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+.col .h .zh{font-size:15px;font-weight:700}
+.col .h .en{font-size:12px;color:var(--muted)}
+.col .hint{margin-top:auto;font-size:12px;color:var(--faint);text-align:center}
+.col .hint.bad{color:var(--danger-soft)}
+.col.terminal{border-color:rgba(157,191,158,.5);background:rgba(157,191,158,.05)}
+.col.io{border-color:rgba(224,179,92,.5);background:rgba(224,179,92,.05)}
+.col.process{border-color:rgba(143,169,201,.5);background:rgba(143,169,201,.05)}
+.col.decision{border-color:rgba(196,154,184,.5);background:rgba(196,154,184,.05)}
+.col.none{border-color:var(--border-strong);background:rgba(168,158,146,.04)}
+.placed{font-size:14px;padding:8px 10px;text-align:center;border:2px solid;cursor:grab;user-select:none;touch-action:none}
+.placed.terminal{border-radius:999px;border-color:var(--terminal);background:var(--terminal-bg)}
+.placed.io{border-color:var(--io);background:var(--io-bg);transform:skewX(-10deg)}
+.placed.io span{display:inline-block;transform:skewX(10deg)}
+.placed.process{border-radius:8px;border-color:var(--process);background:var(--process-bg)}
+.placed.decision{border-radius:8px;border-color:var(--decision);background:var(--decision-bg)}
+.placed.none{border-radius:8px;border-color:var(--border-strong);background:var(--surface);color:var(--muted);text-decoration:line-through}
+.placed.bad{border-color:var(--danger) !important;background:var(--danger-bg) !important}
+.placed.ok{border-color:var(--success) !important}
+.dragghost{position:fixed;pointer-events:none;z-index:50;opacity:.9}
+/* canvas layout */
+.work{flex:1;display:flex;min-height:0}
+.tray{width:230px;flex:none;background:var(--surface);border-right:1px solid var(--border);padding:18px 14px;display:flex;flex-direction:column;gap:12px;overflow:auto}
+.tray .h{display:flex;justify-content:space-between;align-items:center;font-size:14px;font-weight:700}
+.tray .cnt{font-size:12px;color:var(--warning);font-weight:400}
+.tnode{height:46px;display:flex;align-items:center;justify-content:center;font-size:14px;border:2px solid;cursor:grab;user-select:none;touch-action:none;padding:0 10px;text-align:center}
+.tnode.terminal{border-radius:999px;border-color:var(--terminal);background:var(--terminal-bg)}
+.tnode.io{border-color:var(--io);background:var(--io-bg);transform:skewX(-10deg)}
+.tnode.io span{display:inline-block;transform:skewX(10deg)}
+.tnode.process{border-radius:8px;border-color:var(--process);background:var(--process-bg)}
+.tnode.decision{border-radius:8px;border-color:var(--decision);background:var(--decision-bg)}
+.tips{margin-top:auto;font-size:12px;color:var(--muted);display:flex;flex-direction:column;gap:6px;line-height:1.5}
+.tips b{color:var(--text-2)}
+.cv{flex:1;position:relative;min-width:0;background-color:var(--bg);background-image:radial-gradient(var(--border) 1px,transparent 1px);background-size:24px 24px;overflow:hidden}
+.cv svg{width:100%;height:100%;display:block;touch-action:none}
+.cv .empty{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);color:var(--faint);font-size:16px;pointer-events:none;text-align:center;line-height:1.7}
+.pop{position:absolute;z-index:20;background:var(--surface);border:1px solid var(--process);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:10px;width:190px;box-shadow:0 8px 24px rgba(0,0,0,.4)}
+.pop .row{display:flex;gap:8px}
+.pop .row button{flex:1;font-weight:700}
+.pop .y{border-color:var(--decision);color:var(--decision-soft)}
+.pop input{width:100%}
+.resbar{position:absolute;left:20px;right:20px;bottom:20px;z-index:15;background:var(--surface);border:1px solid var(--border-strong);border-radius:14px;padding:14px 18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.resbar.bad{border-color:var(--danger)}
+.resbar.ok{border-color:var(--success)}
+.resbar .dot{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;flex:none}
+.resbar.bad .dot{background:rgba(224,122,107,.2);color:var(--danger-soft)}
+.resbar.ok .dot{background:rgba(143,191,138,.2);color:var(--success-soft)}
+.resbar .msg{flex:1;min-width:220px;display:flex;flex-direction:column}
+.resbar .msg b{font-size:16px}
+.resbar .msg span{font-size:14px;color:var(--text-2)}
+.toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:var(--surface);border:1px solid var(--warning);color:var(--text);padding:12px 18px;border-radius:12px;font-size:15px;z-index:60;opacity:0;transition:opacity .2s;pointer-events:none;max-width:90vw}
+.toast.show{opacity:1}
+.overlay{position:fixed;inset:0;background:rgba(28,26,23,.96);z-index:100;display:none;align-items:center;justify-content:center;padding:24px;text-align:center}
+.overlay.show{display:flex}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:90;display:none;align-items:center;justify-content:center;padding:24px}
+.modal.show{display:flex}
+.modal .box{background:var(--surface);border:1px solid var(--border-strong);border-radius:16px;padding:24px 28px;width:min(640px,100%);max-height:90vh;overflow:auto;display:flex;flex-direction:column;gap:16px}
+.help{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.help .s{background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:6px;font-size:14px}
+.help .s b{font-size:15px}
+.help .n{width:26px;height:26px;border-radius:50%;background:var(--primary);color:var(--on-primary);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px}
+.tracebox{position:relative;border-radius:10px;background-color:var(--bg);background-image:radial-gradient(var(--border) 1px,transparent 1px);background-size:24px 24px;overflow:auto;height:520px}
+.tracebox svg{display:block}
+.ans{display:flex;flex-direction:column;gap:10px}
+.ans button{text-align:left;padding:12px 16px;border-radius:12px;font-size:16px;display:flex;align-items:center;gap:14px;background:var(--surface);color:var(--text)}
+.ans button .k{width:28px;height:28px;border-radius:50%;border:1px solid var(--border-strong);display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--muted);flex:none}
+.ans button.sel{border:2px solid var(--primary);background:rgba(193,178,163,.18)}
+.ans button.sel .k{background:var(--primary);color:var(--on-primary);border-color:var(--primary);font-weight:700}
+.ans button.ok{border:2px solid var(--success)}
+.ans button.bad{border:2px solid var(--danger)}
+.celebrate{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:14}
+.celebrate i{position:absolute;top:-12px;width:8px;height:14px;border-radius:2px;animation:fall 1.6s ease-in forwards}
+@keyframes fall{to{transform:translateY(110vh) rotate(540deg);opacity:.2}}
+.kv{display:grid;grid-template-columns:120px 1fr;gap:8px 12px;align-items:center;font-size:14px}
+code{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:1px 6px;font-size:13px}
+.status{font-size:13px;display:inline-flex;align-items:center;gap:6px}
+.status i{width:8px;height:8px;border-radius:50%;display:inline-block;background:var(--faint)}
+.status.on i{background:var(--success)}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="toast" class="toast"></div>
+<div id="narrow" class="overlay"><div><h1 style="font-size:26px">請用電腦打開，並把視窗放大</h1><p class="muted" style="margin-top:10px">畫流程圖需要比較寬的畫面（至少 900 像素寬）。</p></div></div>
+<div id="modal" class="modal"><div class="box" id="modalbox"></div></div>
+
+<script id="bank" type="application/json">
+{
+  "symbols": [
+    { "type": "terminal", "zh": "開始／結束", "en": "Start / End", "shape": "橢圓", "hint": "流程只有一個開始、一個結束" },
+    { "type": "io", "zh": "輸入／輸出", "en": "Input / Output", "shape": "平行四邊形", "hint": "把東西交給電腦，或電腦把結果給你看" },
+    { "type": "process", "zh": "處理", "en": "Process", "shape": "矩形", "hint": "做一件事、算一個數" },
+    { "type": "decision", "zh": "判斷", "en": "Decision", "shape": "菱形", "hint": "問一個是非題，一定有「是」和「否」兩條路，只會走其中一條" }
+  ],
+  "questions": [
+    { "id": "q1", "type": "sequence", "title": "泡一碗泡麵",
+      "story": "小安肚子餓了，想泡一碗泡麵。請把泡麵的步驟畫成流程圖。",
+      "analysis": { "start": "開始", "end": "結束", "hasDecision": false, "whyNoDecision": "每一步都一定要做，沒有要選的地方" },
+      "nodes": [
+        { "id": "n1", "symbol": "terminal", "text": "開始" },
+        { "id": "n2", "symbol": "process", "text": "燒一壺熱水" },
+        { "id": "n3", "symbol": "process", "text": "把麵和調味包放進碗裡" },
+        { "id": "n4", "symbol": "process", "text": "倒入熱水、蓋上蓋子" },
+        { "id": "n5", "symbol": "process", "text": "等三分鐘" },
+        { "id": "n6", "symbol": "io", "text": "顯示「可以吃了！」" },
+        { "id": "n7", "symbol": "terminal", "text": "結束" } ],
+      "edges": [ ["n1","n2"], ["n2","n3"], ["n3","n4"], ["n4","n5"], ["n5","n6"], ["n6","n7"] ],
+      "distractors": [ "把麵放進冰箱", "等三十分鐘" ],
+      "trace": { "question": "照這張流程圖做，倒入熱水之後的下一步是什麼？", "options": ["燒一壺熱水", "等三分鐘", "把麵放進碗裡", "顯示「可以吃了！」"], "answer": 1 } },
+    { "id": "q2", "type": "sequence", "title": "算長方形的面積",
+      "story": "寫一個小程式：使用者輸入長和寬，程式算出長方形的面積並顯示出來。",
+      "analysis": { "start": "開始", "end": "結束", "hasDecision": false, "whyNoDecision": "不管輸入什麼數字，算法都一樣" },
+      "nodes": [
+        { "id": "n1", "symbol": "terminal", "text": "開始" },
+        { "id": "n2", "symbol": "io", "text": "輸入長" },
+        { "id": "n3", "symbol": "io", "text": "輸入寬" },
+        { "id": "n4", "symbol": "process", "text": "面積 ＝ 長 × 寬" },
+        { "id": "n5", "symbol": "io", "text": "輸出面積" },
+        { "id": "n6", "symbol": "terminal", "text": "結束" } ],
+      "edges": [ ["n1","n2"], ["n2","n3"], ["n3","n4"], ["n4","n5"], ["n5","n6"] ],
+      "distractors": [ "面積 ＝ 長 ＋ 寬", "輸入高" ],
+      "trace": { "question": "輸入長 ＝ 5、寬 ＝ 3，這個程式最後會輸出什麼？", "options": ["8", "15", "53", "什麼都不會輸出"], "answer": 1 } },
+    { "id": "q3", "type": "sequence", "title": "攝氏換華氏",
+      "story": "寫一個小程式：輸入攝氏溫度，算出華氏溫度（華氏 ＝ 攝氏 × 1.8 ＋ 32）並顯示。",
+      "analysis": { "start": "開始", "end": "結束", "hasDecision": false, "whyNoDecision": "只是算一個公式，沒有要選" },
+      "nodes": [
+        { "id": "n1", "symbol": "terminal", "text": "開始" },
+        { "id": "n2", "symbol": "io", "text": "輸入攝氏溫度" },
+        { "id": "n3", "symbol": "process", "text": "華氏 ＝ 攝氏 × 1.8 ＋ 32" },
+        { "id": "n4", "symbol": "io", "text": "輸出華氏溫度" },
+        { "id": "n5", "symbol": "terminal", "text": "結束" } ],
+      "edges": [ ["n1","n2"], ["n2","n3"], ["n3","n4"], ["n4","n5"] ],
+      "distractors": [ "輸入華氏溫度", "華氏 ＝ 攝氏 ＋ 1.8" ],
+      "trace": { "question": "輸入攝氏 100 度，會輸出多少？", "options": ["132", "180", "212", "100"], "answer": 2 } },
+    { "id": "q4", "type": "decision", "title": "要不要帶雨傘",
+      "story": "小美出門前看一下窗外：如果在下雨就帶雨傘，沒下雨就不帶，然後出門。",
+      "analysis": { "start": "開始", "end": "結束", "hasDecision": true, "decisionText": "外面在下雨嗎？", "yesPath": "帶雨傘", "noPath": "不帶雨傘" },
+      "nodes": [
+        { "id": "n1", "symbol": "terminal", "text": "開始" },
+        { "id": "n2", "symbol": "process", "text": "看一下窗外" },
+        { "id": "n3", "symbol": "decision", "text": "外面在下雨嗎？" },
+        { "id": "n4", "symbol": "process", "text": "帶雨傘" },
+        { "id": "n5", "symbol": "process", "text": "不帶雨傘" },
+        { "id": "n6", "symbol": "process", "text": "出門" },
+        { "id": "n7", "symbol": "terminal", "text": "結束" } ],
+      "edges": [ ["n1","n2"], ["n2","n3"], ["n3","n4","是"], ["n3","n5","否"], ["n4","n6"], ["n5","n6"], ["n6","n7"] ],
+      "distractors": [ "帶游泳圈", "今天星期幾？" ],
+      "trace": { "question": "今天沒有下雨，小美會走哪一條路？", "options": ["帶雨傘 → 出門", "不帶雨傘 → 出門", "帶雨傘 → 不帶雨傘 → 出門", "直接結束"], "answer": 1 } },
+    { "id": "q5", "type": "decision", "title": "及格了嗎",
+      "story": "輸入一個分數，如果大於或等於 60 分就顯示「及格」，不然就顯示「不及格」。",
+      "analysis": { "start": "開始", "end": "結束", "hasDecision": true, "decisionText": "分數 ≥ 60？", "yesPath": "輸出「及格」", "noPath": "輸出「不及格」" },
+      "nodes": [
+        { "id": "n1", "symbol": "terminal", "text": "開始" },
+        { "id": "n2", "symbol": "io", "text": "輸入分數" },
+        { "id": "n3", "symbol": "decision", "text": "分數 ≥ 60？" },
+        { "id": "n4", "symbol": "io", "text": "輸出「及格」" },
+        { "id": "n5", "symbol": "io", "text": "輸出「不及格」" },
+        { "id": "n6", "symbol": "terminal", "text": "結束" } ],
+      "edges": [ ["n1","n2"], ["n2","n3"], ["n3","n4","是"], ["n3","n5","否"], ["n4","n6"], ["n5","n6"] ],
+      "distractors": [ "分數 ＋ 60", "輸入姓名" ],
+      "trace": { "question": "輸入 59 分，會輸出什麼？", "options": ["及格", "不及格", "59", "兩個都會輸出"], "answer": 1 } },
+    { "id": "q6", "type": "decision", "title": "搭電梯還是走樓梯",
+      "story": "小宇到學校，看教室在幾樓：超過 3 樓就搭電梯，不然就走樓梯，然後到教室。",
+      "analysis": { "start": "開始", "end": "結束", "hasDecision": true, "decisionText": "樓層 > 3？", "yesPath": "搭電梯", "noPath": "走樓梯" },
+      "nodes": [
+        { "id": "n1", "symbol": "terminal", "text": "開始" },
+        { "id": "n2", "symbol": "io", "text": "輸入教室樓層" },
+        { "id": "n3", "symbol": "decision", "text": "樓層 > 3？" },
+        { "id": "n4", "symbol": "process", "text": "搭電梯" },
+        { "id": "n5", "symbol": "process", "text": "走樓梯" },
+        { "id": "n6", "symbol": "process", "text": "到教室" },
+        { "id": "n7", "symbol": "terminal", "text": "結束" } ],
+      "edges": [ ["n1","n2"], ["n2","n3"], ["n3","n4","是"], ["n3","n5","否"], ["n4","n6"], ["n5","n6"], ["n6","n7"] ],
+      "distractors": [ "搭公車", "樓層 ＋ 3" ],
+      "trace": { "question": "教室在 3 樓，小宇會怎麼走？", "options": ["搭電梯", "走樓梯", "搭電梯再走樓梯", "不用去教室"], "answer": 1 } },
+    { "id": "q7", "type": "decision", "title": "奇數還是偶數",
+      "story": "輸入一個整數，如果除以 2 的餘數是 0 就顯示「偶數」，不然就顯示「奇數」。",
+      "analysis": { "start": "開始", "end": "結束", "hasDecision": true, "decisionText": "除以 2 餘數是 0？", "yesPath": "輸出「偶數」", "noPath": "輸出「奇數」" },
+      "nodes": [
+        { "id": "n1", "symbol": "terminal", "text": "開始" },
+        { "id": "n2", "symbol": "io", "text": "輸入一個整數" },
+        { "id": "n3", "symbol": "decision", "text": "除以 2 餘數是 0？" },
+        { "id": "n4", "symbol": "io", "text": "輸出「偶數」" },
+        { "id": "n5", "symbol": "io", "text": "輸出「奇數」" },
+        { "id": "n6", "symbol": "terminal", "text": "結束" } ],
+      "edges": [ ["n1","n2"], ["n2","n3"], ["n3","n4","是"], ["n3","n5","否"], ["n4","n6"], ["n5","n6"] ],
+      "distractors": [ "乘以 2", "輸出「質數」" ],
+      "trace": { "question": "輸入 7，會輸出什麼？", "options": ["偶數", "奇數", "3.5", "0"], "answer": 1 } }
+  ]
+}
+</script>
+
+<script>
+/* ============ 老師設定區（可以直接改這裡） ============ */
+const SHEET_URL_DEFAULT = "";   // 貼上 Google Apps Script 網址，例如 "https://script.google.com/macros/s/xxxx/exec"
+const TEACHER_PIN = "";         // 想鎖住「老師設定」就填 4 位數字，不填就不鎖
+/* ====================================================== */
+
+const BANK = JSON.parse(document.getElementById('bank').textContent);
+const SYM = Object.fromEntries(BANK.symbols.map(s=>[s.type,s]));
+const COLORS = {
+  terminal:{stroke:'#9DBF9E',fill:'#27342A'}, io:{stroke:'#E0B35C',fill:'#3A3122'},
+  process:{stroke:'#8FA9C9',fill:'#232B36'}, decision:{stroke:'#C49AB8',fill:'#332733'},
+};
+const MODES = {
+  draw:{name:'看題畫圖',desc:'讀題目，自己把流程圖畫出來',color:'process'},
+  trace:{name:'看圖答結果',desc:'順著箭頭走，猜猜會發生什麼',color:'terminal'},
+  sort:{name:'排序方塊',desc:'方塊都給你了，只要接對線',color:'io'},
+  free:{name:'自由畫布',desc:'沒有題目，想畫什麼就畫什麼',color:'decision'},
+};
+const $ = (s,el=document)=>el.querySelector(s);
+const esc = s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const shuffle = a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+const store = {
+  get(k,d){try{const v=localStorage.getItem('fc_'+k);return v==null?d:JSON.parse(v)}catch(e){return d}},
+  set(k,v){try{localStorage.setItem('fc_'+k,JSON.stringify(v))}catch(e){}}
+};
+let toastT; function toast(msg){const t=$('#toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),2600)}
+
+/* ---------- 文字寬度 ---------- */
+const mctx = document.createElement('canvas').getContext('2d');
+function textW(t,size=14){mctx.font=`${size}px 'LXGW WenKai TC', system-ui, sans-serif`;return mctx.measureText(t).width}
+function nodeSize(sym,text){
+  const w=textW(text);
+  if(sym==='terminal') return {w:Math.max(140,w+48),h:48};
+  if(sym==='io') return {w:Math.max(160,w+64),h:48};
+  if(sym==='decision') return {w:Math.max(190,w+90),h:92};
+  return {w:Math.max(160,w+44),h:48};
+}
+
+/* ---------- 全域狀態 ---------- */
+const S = {
+  screen:'home', mode:'draw', qi:0, step:1,
+  who: store.get('who',{cls:'',seat:'',name:''}),
+  sheetUrl: store.get('sheetUrl', SHEET_URL_DEFAULT),
+  done: store.get('done',{}),            // 'draw:q1' -> true
+  attempts:{}, qStart:0,
+  s2:{start:null,end:null,has:null,which:null,checked:false},
+  s3:{cards:[],sel:null,checked:false},
+  cv:null, // 畫布狀態
+};
+const Q = ()=>BANK.questions[S.qi];
+
+/* ---------- 路由與畫面 ---------- */
+function render(){
+  const app=$('#app');
+  if(S.screen==='home') app.innerHTML=viewHome();
+  else if(S.screen==='draw') app.innerHTML=viewDraw();
+  else if(S.screen==='trace') app.innerHTML=viewTrace();
+  else if(S.screen==='sort'||S.screen==='free') app.innerHTML=viewCanvasScreen();
+  bind();
+}
+function topbar(mid,right){
+  return `<div class="topbar">
+    <div class="left"><button class="logo" data-go="home" aria-label="回首頁"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#1C1A17" stroke-width="1.8"><rect x="2" y="1.5" width="12" height="4" rx="2"/><path d="M8 5.5v3M3 12l5-3.5 5 3.5-5 3z"/></svg></button>${mid||'<span class="brand">流程圖練習器</span>'}</div>
+    <div class="right">${right||''}</div></div>`;
+}
+function stepChips(cur){
+  const names=['確定問題','問題分析','使用符號','繪製流程圖'];
+  return `<div class="steps">${names.map((n,i)=>`<span class="chip ${i+1<cur?'done':i+1===cur?'now':''}">${i+1} ${n}${i+1<cur?' ✓':''}</span>`).join('')}</div>`;
+}
+function iconSvg(mode){
+  const c=COLORS[MODES[mode].color].stroke;
+  const p={draw:'<rect x="3" y="2" width="14" height="5" rx="2.5"/><path d="M10 7v3M4 15l6-4 6 4-6 3z"/>',
+    trace:'<circle cx="10" cy="10" r="7"/><path d="M7 10l2 2 4-4"/>',
+    sort:'<path d="M4 5h12M4 10h12M4 15h12M8 3l-2 2 2 2M12 13l2 2-2 2"/>',
+    free:'<path d="M3 17l3-1 9-9-2-2-9 9zM12 4l2 2"/>'}[mode];
+  return `<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="${c}" stroke-width="1.8">${p}</svg>`;
+}
+
+/* ===================== 首頁 ===================== */
+function viewHome(){
+  const m=S.mode;
+  const qlist = m==='free' ? '' : `<div style="display:flex;flex-direction:column;gap:12px">
+    <div style="display:flex;align-items:baseline;gap:12px"><h2>選一題</h2><span class="small muted">共 ${BANK.questions.length} 題 · 直敘 ${BANK.questions.filter(q=>q.type==='sequence').length} 題、選擇 ${BANK.questions.filter(q=>q.type==='decision').length} 題</span></div>
+    <div class="grid4">${BANK.questions.map((q,i)=>`<button class="qcard" data-q="${i}"><span class="t">${i+1} ${esc(q.title)}</span><span style="display:flex;gap:6px"><span class="tag ${q.type==='sequence'?'seq':'dec'}">${q.type==='sequence'?'直敘':'選擇'}</span>${S.done[m+':'+q.id]?'<span class="tag ok">已過關</span>':''}</span></button>`).join('')}
+    </div></div>`;
+  const sheetOn = !!S.sheetUrl;
+  return topbar('<span class="brand">流程圖練習器</span>', `<span class="status ${sheetOn?'on':''}"><i></i>${sheetOn?'已連線到老師的試算表':'尚未連線試算表'}</span><button class="ghost sm" data-act="help">怎麼操作？</button><button class="ghost sm" data-act="settings">老師設定</button>`)+
+  `<div class="page"><div class="wrap">
+    <div style="display:flex;flex-direction:column;gap:6px"><h1>今天要怎麼練？</h1><p class="muted">先選一種練法，再選一題。畫完電腦會馬上告訴你對不對。</p></div>
+    <div class="card who"><span style="font-weight:700;font-size:14px;color:var(--muted)">我是</span>
+      <input id="w-cls" placeholder="班級（如 701）" value="${esc(S.who.cls)}"><input id="w-seat" placeholder="座號" value="${esc(S.who.seat)}"><input id="w-name" class="name" placeholder="姓名" value="${esc(S.who.name)}">
+      <span class="small faint">${sheetOn?'填了老師才看得到你的作答紀錄':'（這台電腦會記住）'}</span></div>
+    <div class="grid4">${Object.entries(MODES).map(([k,v])=>`<button class="modecard ${k===m?'sel':''}" data-mode="${k}"><span class="ic" style="background:${COLORS[v.color].fill}">${iconSvg(k)}</span><span class="t">${v.name}</span><span class="d">${v.desc}</span></button>`).join('')}</div>
+    ${qlist}
+    ${m==='free'?'<div class="actions" style="justify-content:flex-start"><button class="primary" data-act="free">打開自由畫布</button></div>':''}
+    <div class="card legend"><span style="font-size:14px;font-weight:700;color:var(--muted)">四種符號</span>
+      ${BANK.symbols.map(s=>`<span class="it"><span class="sw ${s.type}"></span>${esc(s.zh)} <span class="muted">${esc(s.en)}</span></span>`).join('')}</div>
+  </div></div>`;
+}
+
+/* ===================== 看題畫圖（四步驟） ===================== */
+function viewDraw(){
+  const q=Q();
+  const mid=`<span class="sub">第 ${S.qi+1} 題 · ${esc(q.title)}</span>${stepChips(S.step)}`;
+  if(S.step===4) return topbar(mid, canvasToolbar())+canvasBody();
+  let body='';
+  if(S.step===1){
+    body=`<div class="wrap" style="max-width:820px;align-items:center;text-align:center;padding-top:72px">
+      <span class="muted">步驟 1 · 確定問題</span><h1 style="font-size:26px">先把題目讀清楚</h1>
+      <div class="card" style="width:100%;padding:36px 40px"><p class="story" style="font-size:22px">${esc(q.story)}</p></div>
+      <p class="muted">讀完想一想：這件事從哪裡開始、到哪裡結束？中間有沒有要做決定的地方？</p>
+      <div class="actions"><button class="primary" id="s1next" data-act="next" disabled>我看懂了，下一步（3）</button></div></div>`;
+  } else if(S.step===2){
+    const opts=q.nodes.map(n=>n.text);
+    const s=S.s2;
+    const row=(key,title,idx)=>{
+      const st = s.checked ? (s[key]===(key==='start'?q.analysis.start:q.analysis.end)?'ok':'bad') : '';
+      return `<div class="card q ${st}"><div class="head"><span class="t">${idx} ${title}</span>${st==='ok'?'<span class="fb ok">✓ 答對了</span>':st==='bad'?'<span class="fb bad">再想想</span>':''}</div>
+        <div class="opts">${opts.map(o=>`<button class="opt ${s[key]===o?(st||'sel'):''}" data-s2="${key}" data-v="${esc(o)}">${esc(o)}</button>`).join('')}</div>
+        ${st==='bad'?`<p class="fb bad">提示：流程圖的${key==='start'?'起點':'終點'}一定是哪一種符號？</p>`:''}</div>`;
+    };
+    const hasSt = s.checked ? (s.has===q.analysis.hasDecision && (!q.analysis.hasDecision || s.which===q.analysis.decisionText)?'ok':'bad') : '';
+    body=`<div class="wrap"><div class="two">
+      <div class="l"><div class="card"><span class="small muted" style="font-weight:700">題目</span><p class="story">${esc(q.story)}</p></div>
+        <div class="hintbox"><b style="color:var(--link)">想一想</b><p class="small" style="color:var(--text-2)">每張流程圖都要先找到：從哪裡開始、到哪裡結束、中間有沒有要「做決定」的地方。</p></div></div>
+      <div class="r">
+        ${row('start','這個流程從哪一句開始？','①')}
+        ${row('end','到哪一句結束？','②')}
+        <div class="card q ${hasSt}"><div class="head"><span class="t">③ 中間有沒有要「做決定」的地方？</span>${hasSt==='ok'?'<span class="fb ok">✓ 答對了</span>':hasSt==='bad'?'<span class="fb bad">再想想</span>':''}</div>
+          <div class="opts"><button class="opt big ${s.has===true?(hasSt||'sel'):''}" data-has="1">有</button><button class="opt big ${s.has===false?(hasSt||'sel'):''}" data-has="0">沒有</button></div>
+          ${s.has===true?`<p class="small muted">是哪一句在做決定？</p><div class="opts">${opts.map(o=>`<button class="opt ${s.which===o?'sel':''}" data-which="${esc(o)}">${esc(o)}</button>`).join('')}</div>`:''}
+          ${hasSt==='bad'?`<p class="fb bad">提示：${q.analysis.hasDecision?'題目裡有「如果…就…不然…」，這就是在做決定。':esc(q.analysis.whyNoDecision)}</p>`:''}</div>
+        <div class="actions"><button data-act="back">上一步</button>${s.checked&&allS2ok()?'<button class="primary" data-act="next">下一步</button>':'<button class="primary" data-act="check2">檢查</button>'}</div>
+      </div></div></div>`;
+  } else if(S.step===3){
+    const cards=S.s3.cards;
+    const pool=cards.filter(c=>!c.col);
+    const colHtml=(type,zh,en,hint)=>{
+      const inCol=cards.filter(c=>c.col===type);
+      const badHint = S.s3.hintFor===type;
+      return `<div class="col ${type}" data-col="${type}"><div class="h">${type==='none'?'<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#A89E92" stroke-width="1.8"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>':`<span class="sw ${type}" style="width:72px;height:32px;${type==='decision'?'width:30px;height:30px;':''}"></span>`}<span class="zh">${zh}</span><span class="en">${en}</span></div>
+        ${inCol.map(c=>`<div class="placed ${type} ${c.state||''}" data-card="${c.id}"><span>${esc(c.text)}</span></div>`).join('')}
+        <span class="hint ${badHint?'bad':''}">${hint}</span></div>`;
+    };
+    body=`<div class="wrap" style="max-width:1180px;gap:18px">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:16px;flex-wrap:wrap"><h1 style="font-size:22px">每一句話該用什麼符號？把卡片拖到下面的欄位</h1><span class="small muted">點一下卡片再點欄位也可以。用不到的句子，丟到「不需要」</span></div>
+      <div class="card" style="display:flex;flex-direction:column;gap:10px"><div style="display:flex;justify-content:space-between"><span class="small muted" style="font-weight:700">句子卡</span><span class="small" style="color:var(--warning)">${pool.length?`還有 ${pool.length} 張沒放`:'都放好了！'}</span></div>
+        <div class="pool" id="pool">${pool.map(c=>`<div class="scard ${S.s3.sel===c.id?'sel':''}" data-card="${c.id}">${esc(c.text)}</div>`).join('')}</div></div>
+      <div class="cols">
+        ${colHtml('terminal','開始／結束','Start / End',SYM.terminal.hint)}
+        ${colHtml('io','輸入／輸出','Input / Output',SYM.io.hint)}
+        ${colHtml('process','處理','Process',SYM.process.hint)}
+        ${colHtml('decision','判斷','Decision',SYM.decision.hint)}
+        ${colHtml('none','不需要','這題用不到','跟題目無關的句子放這裡')}
+      </div>
+      <div class="actions"><span class="small muted">${pool.length?'卡片都放完才能檢查':''}</span><button data-act="back">上一步</button>${S.s3.allOk?'<button class="primary" data-act="next">下一步</button>':`<button class="primary" data-act="check3" ${pool.length?'disabled':''}>檢查</button>`}</div>
+    </div>`;
+  }
+  return topbar(mid,'<span class="small faint">步驟 '+S.step+'／4</span>')+`<div class="page">${body}</div>`;
+}
+function allS2ok(){const q=Q(),s=S.s2;return s.start===q.analysis.start&&s.end===q.analysis.end&&s.has===q.analysis.hasDecision&&(!q.analysis.hasDecision||s.which===q.analysis.decisionText)}
+
+/* ===================== 看圖答結果 ===================== */
+function viewTrace(){
+  const q=Q(), t=S.tr||{sel:null,checked:false};
+  const svg=autoLayoutSvg(q);
+  const letters='ABCD';
+  return topbar(`<span class="sub">第 ${S.qi+1} 題 · ${esc(q.title)}</span><span class="chip mode">看圖答結果</span>`,`<span class="small faint">第 ${S.qi+1} 題 ／ 共 ${BANK.questions.length} 題</span>`)+
+  `<div class="page"><div class="wrap" style="max-width:1180px"><div class="two">
+    <div class="r card" style="padding:14px;gap:8px"><span class="small muted" style="font-weight:700">這張流程圖</span><div class="tracebox">${svg}</div></div>
+    <div class="l" style="flex:1 1 340px">
+      <div class="card"><span class="small muted" style="font-weight:700">問題</span><p style="font-size:20px;font-weight:700;line-height:1.5">${esc(q.trace.question)}</p></div>
+      <div class="ans">${q.trace.options.map((o,i)=>{let st='';if(t.checked&&t.sel===i)st=i===q.trace.answer?'ok':'bad';else if(t.sel===i)st='sel';return `<button class="${st}" data-tr="${i}"><span class="k">${letters[i]}</span>${esc(o)}</button>`}).join('')}</div>
+      ${t.checked?(t.sel===q.trace.answer?'<p class="fb ok">答對了！順著箭頭走就是這樣。</p>':'<p class="fb bad">不對喔。用手指順著箭頭再走一次，遇到菱形時只能走「是」或「否」其中一條。</p>'):'<p class="small muted">小技巧：用手指順著箭頭走一遍。遇到菱形時，只能走「是」或「否」其中一條。</p>'}
+      <div class="actions">${t.checked&&t.sel===q.trace.answer?`<button class="primary" data-act="nextq">下一題</button>`:`<button class="primary" data-act="checktr">檢查</button>`}</div>
+    </div></div></div></div>`;
+}
+
+/* ===================== 畫布畫面（排序／自由） ===================== */
+function viewCanvasScreen(){
+  const q=Q();
+  const mid = S.screen==='free' ? `<span class="brand">自由畫布</span><span class="chip mode">自由畫布</span>` : `<span class="sub">第 ${S.qi+1} 題 · ${esc(q.title)}</span><span class="chip mode">排序方塊</span>`;
+  return topbar(mid, canvasToolbar())+canvasBody();
+}
+function canvasToolbar(){
+  const free=S.screen==='free';
+  return `<button class="sm" data-cv="undo">復原</button><button class="sm" data-cv="clear">清空</button><button class="sm" data-cv="png">下載圖片</button><span style="width:1px;height:24px;background:var(--border);margin:0 4px"></span>
+    ${S.screen==='draw'?'<button data-act="back">上一步</button>':''}${free?'':'<button class="primary" data-cv="grade">批改</button>'}`;
+}
+function canvasBody(){
+  const free=S.screen==='free';
+  const trayTitle = free ? '符號' : '方塊';
+  return `<div class="work"><div class="tray"><div class="h"><span>${trayTitle}</span><span class="cnt" id="traycnt"></span></div>
+    <p class="small muted" style="line-height:1.5">${free?'把符號拖到右邊，雙擊方塊可以改字。':'把方塊拖到右邊，從方塊邊緣的小圓點拉線接到下一個。'}</p>
+    <div id="tray" style="display:flex;flex-direction:column;gap:10px"></div>
+    <div class="tips"><b>小提醒</b><span>判斷（菱形）一定要有「是」和「否」兩條路。</span><span>箭頭有方向，從上一步指向下一步。</span><span>點一下線可以刪除；雙擊方塊${free?'改字':'放回左邊'}。</span></div></div>
+    <div class="cv" id="cv"><svg id="svg" xmlns="http://www.w3.org/2000/svg"></svg><div class="empty" id="cvempty">把左邊的方塊拖進來<br><span class="small">從方塊邊緣的小圓點拉線，接到下一個方塊</span></div></div></div>`;
+}
+
+/* ===================== 自動排版（看圖答結果用） ===================== */
+function autoLayoutSvg(q){
+  const nodes=q.nodes.map(n=>({...n,...nodeSize(n.symbol,n.text)}));
+  const byId=Object.fromEntries(nodes.map(n=>[n.id,n]));
+  const out={},inn={};
+  q.edges.forEach(([a,b,l])=>{(out[a]=out[a]||[]).push({to:b,label:l});inn[b]=(inn[b]||0)+1});
+  // 層級與分支
+  const level={},branch={};
+  const start=nodes[0].id; level[start]=0; branch[start]='M';
+  const queue=[start];
+  while(queue.length){const id=queue.shift();(out[id]||[]).forEach(e=>{
+    const nl=level[id]+1; if(level[e.to]==null||nl>level[e.to]) level[e.to]=nl;
+    let br=branch[id]; if(byId[id].symbol==='decision') br = e.label==='是'?'L':'R'; if((inn[e.to]||0)>=2) br='M';
+    branch[e.to]=br; queue.push(e.to);});}
+  const cx=300; const rowH=[]; nodes.forEach(n=>{rowH[level[n.id]]=Math.max(rowH[level[n.id]]||0,n.h)});
+  let y=24; const rowY=[]; rowH.forEach((h,i)=>{rowY[i]=y;y+=h+44});
+  nodes.forEach(n=>{const b=branch[n.id];const c = b==='L'?cx-200:b==='R'?cx+200:cx; n.x=c-n.w/2; n.y=rowY[level[n.id]]+(rowH[level[n.id]]-n.h)/2;});
+  const edges=q.edges.map(([a,b,l])=>({from:a,to:b,label:l}));
+  const H=y+8;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="${H}" viewBox="0 0 600 ${H}" style="font-family:'LXGW WenKai TC',system-ui,sans-serif">${svgDefs()}${edges.map(e=>edgeSvg(e,byId,null,false)).join('')}${nodes.map(n=>nodeSvg(n,null,false)).join('')}</svg>`;
+}
+
+/* ===================== SVG 繪圖 ===================== */
+function svgDefs(){return `<defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9z" fill="context-stroke"/></marker></defs>`}
+function shapePath(n){
+  const {x,y,w,h}=n;
+  if(n.symbol==='terminal') return `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${h/2}"/>`;
+  if(n.symbol==='process') return `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="8"/>`;
+  if(n.symbol==='io'){const k=14;return `<polygon points="${x+k},${y} ${x+w},${y} ${x+w-k},${y+h} ${x},${y+h}"/>`}
+  return `<polygon points="${x+w/2},${y} ${x+w},${y+h/2} ${x+w/2},${y+h} ${x},${y+h/2}"/>`;
+}
+function nodeSvg(n,mark,interactive){
+  const c=COLORS[n.symbol]; const stroke = mark==='ok'?'#8FBF8A':mark==='bad'?'#E07A6B':c.stroke; const fill = mark==='bad'?'#3A2724':c.fill;
+  const ports = interactive ? [['t',n.x+n.w/2,n.y],['b',n.x+n.w/2,n.y+n.h],['l',n.x,n.y+n.h/2],['r',n.x+n.w,n.y+n.h/2]].map(([p,px,py])=>`<circle class="port" data-port="${p}" cx="${px}" cy="${py}" r="7" fill="#1C1A17" stroke="#C1B2A3" stroke-width="2" style="cursor:crosshair"/>`).join('') : '';
+  const sel = n.selected?`<rect x="${n.x-6}" y="${n.y-6}" width="${n.w+12}" height="${n.h+12}" rx="10" fill="none" stroke="#C1B2A3" stroke-width="1.5" stroke-dasharray="4 3"/>`:'';
+  return `<g class="node" data-id="${n.id}" style="${interactive?'cursor:grab':''}">${sel}<g fill="${fill}" stroke="${stroke}" stroke-width="2">${shapePath(n)}</g><text x="${n.x+n.w/2}" y="${n.y+n.h/2}" text-anchor="middle" dominant-baseline="central" font-size="14" fill="#F3EEE7" style="pointer-events:none;user-select:none">${esc(n.text)}</text>${ports}</g>`;
+}
+function portPos(n,p){return p==='t'?[n.x+n.w/2,n.y]:p==='b'?[n.x+n.w/2,n.y+n.h]:p==='l'?[n.x,n.y+n.h/2]:[n.x+n.w,n.y+n.h/2]}
+function routeEdge(a,b){
+  const ac=[a.x+a.w/2,a.y+a.h/2], bc=[b.x+b.w/2,b.y+b.h/2];
+  let pts=[];
+  if(b.y >= a.y+a.h+16){ // 往下
+    const dx=bc[0]-ac[0];
+    if(a.symbol==='decision' && Math.abs(dx)>60){
+      const p0=portPos(a,dx<0?'l':'r'); pts=[p0,[bc[0],p0[1]],[bc[0],b.y]];
+    } else {
+      const p0=portPos(a,'b');
+      if(Math.abs(dx)<2) pts=[p0,[p0[0],b.y]];
+      else {const my=(a.y+a.h+b.y)/2; pts=[p0,[p0[0],my],[bc[0],my],[bc[0],b.y]];}
+    }
+  } else if(a.y >= b.y+b.h+16){ // 往上（回頭）
+    const right = bc[0]>=ac[0];
+    const p0=portPos(a,right?'r':'l'); const p1=portPos(b,right?'l':'r');
+    if((right && b.x > a.x+a.w+40) || (!right && b.x+b.w < a.x-40)){
+      const mx=(p0[0]+p1[0])/2; pts=[p0,[mx,p0[1]],[mx,p1[1]],p1];
+    } else {
+      const off = right? Math.max(a.x+a.w,b.x+b.w)+40 : Math.min(a.x,b.x)-40;
+      const p1b=portPos(b,right?'r':'l'); pts=[p0,[off,p0[1]],[off,p1b[1]],p1b];
+    }
+  } else { // 同一層左右
+    const right = bc[0]>=ac[0];
+    const p0=portPos(a,right?'r':'l'), p1=portPos(b,right?'l':'r');
+    const mx=(p0[0]+p1[0])/2; pts = Math.abs(p0[1]-p1[1])<2 ? [p0,p1] : [p0,[mx,p0[1]],[mx,p1[1]],p1];
+  }
+  return pts;
+}
+function edgeSvg(e,byId,mark,interactive){
+  const a=byId[e.from], b=byId[e.to]; if(!a||!b) return '';
+  const pts=routeEdge(a,b);
+  const d='M'+pts.map(p=>p.join(' ')).join(' L');
+  const col = mark==='ok'?'#8FBF8A':mark==='bad'?'#E07A6B':e.active?'#8FA9C9':'#A89E92';
+  let label='';
+  if(e.label){
+    const p0=pts[0],p1=pts[1]; let lx,ly;
+    if(p0[1]===p1[1]){lx=p0[0]+(p1[0]>p0[0]?26:-26);ly=p0[1]-16}else{lx=p0[0]+22;ly=p0[1]+18}
+    label=`<g style="pointer-events:none"><rect x="${lx-14}" y="${ly-11}" width="28" height="22" rx="11" fill="#262320" stroke="#C49AB8" stroke-width="1"/><text x="${lx}" y="${ly}" text-anchor="middle" dominant-baseline="central" font-size="12" font-weight="700" fill="#DCC0D3">${e.label}</text></g>`;
+  }
+  const hit = interactive?`<path d="${d}" fill="none" stroke="transparent" stroke-width="16" style="cursor:pointer"/>`:'';
+  const sel = e.selected?`<path d="${d}" fill="none" stroke="#C1B2A3" stroke-width="8" opacity=".35"/>`:'';
+  return `<g class="edge" data-eid="${e.id||''}">${sel}<path d="${d}" fill="none" stroke="${col}" stroke-width="2" marker-end="url(#arr)"/>${hit}${label}</g>`;
+}
+
+/* ===================== 畫布引擎 ===================== */
+function newCanvas(opts){
+  S.cv={nodes:[],edges:[],tray:[],undo:[],selEdge:null,selNode:null,seq:1,graded:null,free:!!opts.free,...opts};
+}
+function cvSnapshot(){const c=S.cv;c.undo.push(JSON.stringify({nodes:c.nodes,edges:c.edges,tray:c.tray}));if(c.undo.length>40)c.undo.shift()}
+function cvUndo(){const c=S.cv;const s=c.undo.pop();if(!s)return toast('沒有可以復原的了');const o=JSON.parse(s);c.nodes=o.nodes;c.edges=o.edges;c.tray=o.tray;c.graded=null;hideRes();drawCanvas()}
+function drawCanvas(){
+  const c=S.cv; const svg=$('#svg'); if(!svg) return;
+  const byId=Object.fromEntries(c.nodes.map(n=>[n.id,n]));
+  const g=c.graded;
+  const em = g ? (id)=>g.edgeMark[id] : ()=>null;
+  const nm = g ? (id)=>g.nodeMark[id] : ()=>null;
+  c.edges.forEach(e=>e.selected=(e.id===c.selEdge));
+  c.nodes.forEach(n=>n.selected=(n.id===c.selNode));
+  svg.innerHTML = svgDefs()+c.edges.map(e=>edgeSvg(e,byId,em(e.id),true)).join('')+c.nodes.map(n=>nodeSvg(n,nm(n.id),true)).join('')+(c.temp?`<path d="M${c.temp.x1} ${c.temp.y1} L${c.temp.x2} ${c.temp.y2}" fill="none" stroke="#8FA9C9" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#arr)" style="pointer-events:none"/>`:'');
+  const empty=$('#cvempty'); if(empty) empty.style.display=c.nodes.length?'none':'';
+  drawTray();
+  const bu=$('[data-cv="undo"]'); if(bu) bu.disabled=!c.undo.length;
+}
+function drawTray(){
+  const c=S.cv; const t=$('#tray'); if(!t) return;
+  if(c.free){
+    t.innerHTML=BANK.symbols.map(s=>`<div class="tnode ${s.type}" data-tray="${s.type}"><span>${esc(s.zh)}<br><span class="small" style="opacity:.8">${esc(s.en)}</span></span></div>`).join('');
+    $('#traycnt').textContent='';
+  } else {
+    t.innerHTML=c.tray.map(n=>`<div class="tnode ${n.symbol}" data-tray="${n.id}"><span>${esc(n.text)}</span></div>`).join('')||'<div class="small faint" style="padding:10px;border:1px dashed var(--border-strong);border-radius:10px;line-height:1.6">方塊都放上去了。雙擊畫布上的方塊可以放回來。</div>';
+    $('#traycnt').textContent=c.tray.length?`還有 ${c.tray.length} 個`:'';
+  }
+}
+function svgPoint(ev){const svg=$('#svg');const r=svg.getBoundingClientRect();return [ev.clientX-r.left, ev.clientY-r.top]}
+function hideRes(){const r=$('#resbar');if(r)r.remove();const ce=$('#celebrate');if(ce)ce.remove()}
+
+/* 滑鼠／觸控互動 */
+let drag=null;
+function cvPointerDown(ev){
+  const c=S.cv; if(!c) return;
+  const trayEl=ev.target.closest('[data-tray]');
+  if(trayEl){
+    ev.preventDefault();
+    cvSnapshot(); hideRes(); c.graded=null;
+    let n;
+    if(c.free){const sym=trayEl.dataset.tray;const text={terminal:'開始',io:'輸入',process:'處理',decision:'判斷？'}[sym];n={id:'f'+(c.seq++),symbol:sym,text,...nodeSize(sym,text)}}
+    else {const i=c.tray.findIndex(x=>x.id===trayEl.dataset.tray);n=c.tray.splice(i,1)[0];Object.assign(n,nodeSize(n.symbol,n.text))}
+    const [px,py]=svgPoint(ev); n.x=px-n.w/2; n.y=py-n.h/2; c.nodes.push(n);
+    drag={type:'node',id:n.id,dx:n.w/2,dy:n.h/2,moved:true}; c.selNode=n.id; c.selEdge=null; drawCanvas(); return;
+  }
+  const port=ev.target.closest('.port');
+  if(port){ev.preventDefault();const g=port.closest('.node');const n=c.nodes.find(x=>x.id===g.dataset.id);const [x,y]=portPos(n,port.dataset.port);drag={type:'link',from:n.id,x1:x,y1:y};c.temp={x1:x,y1:y,x2:x,y2:y};drawCanvas();return}
+  const node=ev.target.closest('.node');
+  if(node){ev.preventDefault();const n=c.nodes.find(x=>x.id===node.dataset.id);const [px,py]=svgPoint(ev);drag={type:'node',id:n.id,dx:px-n.x,dy:py-n.y,moved:false};c.selNode=n.id;c.selEdge=null;drawCanvas();return}
+  const edge=ev.target.closest('.edge');
+  if(edge){c.selEdge=edge.dataset.eid;c.selNode=null;drawCanvas();showEdgePop(edge.dataset.eid);return}
+  c.selEdge=null;c.selNode=null;closePop();drawCanvas();
+}
+function cvPointerMove(ev){
+  const c=S.cv; if(!c||!drag) return; ev.preventDefault();
+  const [px,py]=svgPoint(ev);
+  if(drag.type==='node'){const n=c.nodes.find(x=>x.id===drag.id);if(!drag.moved){cvSnapshot();drag.moved=true;hideRes();c.graded=null}n.x=Math.max(0,px-drag.dx);n.y=Math.max(0,py-drag.dy);drawCanvas()}
+  else if(drag.type==='link'){c.temp.x2=px;c.temp.y2=py;drawCanvas()}
+}
+function cvPointerUp(ev){
+  const c=S.cv; if(!c||!drag) return;
+  if(drag.type==='link'){
+    const el=document.elementFromPoint(ev.clientX,ev.clientY); const g=el&&el.closest('.node');
+    const from=drag.from; c.temp=null;
+    if(g && g.dataset.id!==from){
+      const to=g.dataset.id;
+      if(c.edges.some(e=>e.from===from&&e.to===to)) toast('這兩個已經接起來了');
+      else {
+        const src=c.nodes.find(n=>n.id===from);
+        if(src.symbol==='decision'){
+          if(c.edges.filter(e=>e.from===from).length>=2) toast('判斷只能有「是」和「否」兩條路');
+          else { const [px,py]=svgPoint(ev); askLabel(px,py,label=>{cvSnapshot();hideRes();c.graded=null;c.edges.push({id:'e'+(c.seq++),from,to,label});drawCanvas()}); }
+        } else {
+          if(c.edges.some(e=>e.from===from)) toast('一個方塊只能接出一條線（判斷才有兩條）');
+          else {cvSnapshot();hideRes();c.graded=null;c.edges.push({id:'e'+(c.seq++),from,to});}
+        }
+      }
+    }
+    drawCanvas();
+  }
+  drag=null;
+}
+function cvDblClick(ev){
+  const c=S.cv; const node=ev.target.closest('.node'); if(!node) return;
+  const n=c.nodes.find(x=>x.id===node.dataset.id);
+  if(c.free){ const [px,py]=svgPoint(ev); editText(px,py,n); return; }
+  if(c.lockNodes) return toast('這個模式方塊不能移回去，只要接線就好');
+  cvSnapshot(); hideRes(); c.graded=null;
+  c.edges=c.edges.filter(e=>e.from!==n.id&&e.to!==n.id); c.nodes=c.nodes.filter(x=>x!==n); c.tray.push(n); c.selNode=null; drawCanvas();
+}
+function askLabel(x,y,cb){
+  closePop(); const cv=$('#cv'); const p=document.createElement('div'); p.className='pop'; p.id='pop';
+  p.style.left=Math.min(x+12,cv.clientWidth-200)+'px'; p.style.top=Math.min(y+12,cv.clientHeight-110)+'px';
+  p.innerHTML=`<span class="small" style="color:var(--text-2)">這條路是哪一種？</span><div class="row"><button class="y" data-l="是">是</button><button class="primary" data-l="否">否</button></div>`;
+  p.addEventListener('pointerdown',e=>e.stopPropagation());
+  p.addEventListener('click',e=>{const b=e.target.closest('[data-l]');if(!b)return;const l=b.dataset.l;closePop();cb(l)});
+  cv.appendChild(p);
+}
+function showEdgePop(eid){
+  closePop(); const c=S.cv; const e=c.edges.find(x=>x.id===eid); if(!e) return;
+  const byId=Object.fromEntries(c.nodes.map(n=>[n.id,n])); const pts=routeEdge(byId[e.from],byId[e.to]); const mid=pts[Math.floor(pts.length/2)];
+  const cv=$('#cv'); const p=document.createElement('div'); p.className='pop'; p.id='pop'; p.style.width='auto';
+  p.style.left=Math.min(mid[0]+10,cv.clientWidth-200)+'px'; p.style.top=Math.min(mid[1]+10,cv.clientHeight-60)+'px';
+  p.innerHTML=`<div class="row">${byId[e.from].symbol==='decision'?`<button class="sm y" data-flip="1">改成「${e.label==='是'?'否':'是'}」</button>`:''}<button class="sm" data-del="1" style="color:var(--danger-soft);border-color:var(--danger)">刪除這條線</button></div>`;
+  p.addEventListener('pointerdown',ev=>ev.stopPropagation());
+  p.addEventListener('click',ev=>{
+    if(ev.target.closest('[data-del]')){cvSnapshot();hideRes();c.graded=null;c.edges=c.edges.filter(x=>x.id!==eid);c.selEdge=null;closePop();drawCanvas()}
+    if(ev.target.closest('[data-flip]')){cvSnapshot();hideRes();c.graded=null;e.label=e.label==='是'?'否':'是';closePop();drawCanvas()}
+  });
+  cv.appendChild(p);
+}
+function editText(x,y,n){
+  closePop(); const cv=$('#cv'); const p=document.createElement('div'); p.className='pop'; p.id='pop';
+  p.style.left=Math.min(x,cv.clientWidth-200)+'px'; p.style.top=Math.min(y,cv.clientHeight-110)+'px';
+  p.innerHTML=`<span class="small" style="color:var(--text-2)">方塊要寫什麼？</span><input id="edt" value="${esc(n.text)}" maxlength="20"><div class="row"><button class="sm" data-c="1">取消</button><button class="sm primary" data-ok="1">好了</button></div>`;
+  p.addEventListener('pointerdown',e=>e.stopPropagation());
+  const ok=()=>{const v=$('#edt').value.trim();if(v){cvSnapshot();n.text=v;Object.assign(n,nodeSize(n.symbol,v))}closePop();drawCanvas()};
+  p.addEventListener('click',e=>{if(e.target.closest('[data-ok]'))ok();if(e.target.closest('[data-c]'))closePop()});
+  p.addEventListener('keydown',e=>{if(e.key==='Enter')ok();if(e.key==='Escape')closePop()});
+  cv.appendChild(p); $('#edt').focus(); $('#edt').select();
+}
+function closePop(){const p=$('#pop');if(p)p.remove()}
+
+/* ===================== 批改 ===================== */
+function grade(){
+  const c=S.cv, q=Q();
+  if(c.tray.length) return toast(`還有 ${c.tray.length} 個方塊沒放上去`);
+  if(!c.edges.length) return toast('先從「開始」拉一條線出來');
+  const exp = q.edges.map(([a,b,l])=>({from:a,to:b,label:l||null}));
+  const key=e=>e.from+'>'+e.to;
+  const expMap=Object.fromEntries(exp.map(e=>[key(e),e]));
+  const stuMap=Object.fromEntries(c.edges.map(e=>[key(e),e]));
+  const edgeMark={}, nodeMark={}; let correct=0;
+  c.edges.forEach(e=>{const x=expMap[key(e)]; const ok = x && (x.label||null)===(e.label||null); edgeMark[e.id]=ok?'ok':'bad'; if(ok)correct++;});
+  const byId=Object.fromEntries(c.nodes.map(n=>[n.id,n]));
+  const problems=[]; // 依題目順序找第一個問題
+  q.nodes.forEach(n=>{
+    const outExp=exp.filter(e=>e.from===n.id), outStu=c.edges.filter(e=>e.from===n.id);
+    const inStu=c.edges.filter(e=>e.to===n.id);
+    let bad=false, msg=null;
+    if(n.symbol!=='terminal'||n.id===q.nodes[0].id){
+      if(outExp.length && !outStu.length){bad=true; msg = n.id===q.nodes[0].id?'先從「開始」拉一條線出來。':n.symbol==='decision'?'判斷一定要有「是」和「否」兩條路。':`「${n.text}」之後，下一步是什麼？`}
+    }
+    if(!bad && n.symbol==='decision' && outStu.length<2){bad=true;msg='判斷一定要有「是」和「否」兩條路。'}
+    if(!bad){
+      const wrong=outStu.find(e=>!expMap[key(e)]);
+      if(wrong){bad=true;msg=`「${n.text}」不應該接到「${byId[wrong.to].text}」。再讀一次題目。`}
+    }
+    if(!bad){
+      const lab=outStu.find(e=>expMap[key(e)]&&(expMap[key(e)].label||null)!==(e.label||null));
+      if(lab){bad=true;msg='「是」和「否」接反了嗎？再想想哪一邊才對。'}
+    }
+    if(!bad && n.id!==q.nodes[0].id && !inStu.length){bad=true;msg=`「${n.text}」沒有人接到它。`}
+    nodeMark[n.id]=bad?'bad':'ok'; if(bad&&msg) problems.push(msg);
+  });
+  const allOk = problems.length===0 && correct===exp.length && c.edges.length===exp.length;
+  c.graded={edgeMark,nodeMark,allOk,correct,total:exp.length};
+  drawCanvas();
+  const mode = S.screen==='draw'?'draw':'sort';
+  S.attempts[mode+':'+q.id]=(S.attempts[mode+':'+q.id]||0)+1;
+  showRes(allOk, allOk?'太棒了，全部正確！':'差一點！', allOk?`${exp.length} 條線都接對了。把圖存下來吧。`:problems[0], correct, exp.length);
+  if(allOk){S.done[mode+':'+q.id]=true;store.set('done',S.done);celebrate()}
+  logResult({mode, qid:q.id, title:q.title, result:allOk?'過關':'未過', score:`${correct}/${exp.length}`, attempt:S.attempts[mode+':'+q.id], hint:allOk?'':problems[0]});
+}
+function showRes(ok,title,msg,correct,total){
+  hideRes(); const cv=$('#cv'); const r=document.createElement('div'); r.className='resbar '+(ok?'ok':'bad'); r.id='resbar';
+  r.innerHTML=`<span class="dot">${ok?'✓':'!'}</span><div class="msg"><b>${title}</b><span>${esc(msg||'')}</span></div><span class="small muted">${correct} ／ ${total} 條線正確</span>
+    ${ok?`<button data-cv="png">下載圖片</button><button class="primary" data-act="nextq">下一題</button>`:`<button class="primary" data-cv="fix">回去修改</button>`}`;
+  r.addEventListener('pointerdown',e=>e.stopPropagation());
+  cv.appendChild(r);
+}
+function celebrate(){
+  const cv=$('#cv'); const d=document.createElement('div'); d.className='celebrate'; d.id='celebrate';
+  const cols=['#9DBF9E','#E0B35C','#8FA9C9','#C49AB8','#C1B2A3'];
+  d.innerHTML=Array.from({length:60},(_,i)=>`<i style="left:${Math.random()*100}%;background:${cols[i%5]};animation-delay:${Math.random()*.6}s;animation-duration:${1.3+Math.random()}s"></i>`).join('');
+  cv.appendChild(d); setTimeout(()=>d.remove(),2600);
+}
+
+/* ===================== 下載 PNG ===================== */
+function downloadPng(){
+  const c=S.cv; if(!c.nodes.length) return toast('畫布是空的');
+  const pad=40; const minX=Math.min(...c.nodes.map(n=>n.x))-pad, minY=Math.min(...c.nodes.map(n=>n.y))-pad;
+  const maxX=Math.max(...c.nodes.map(n=>n.x+n.w))+pad+60, maxY=Math.max(...c.nodes.map(n=>n.y+n.h))+pad;
+  const W=Math.max(400,maxX-minX), H=Math.max(300,maxY-minY)+40;
+  const byId=Object.fromEntries(c.nodes.map(n=>[n.id,n]));
+  const title = S.screen==='free' ? '我的流程圖' : `第 ${S.qi+1} 題 ${Q().title}`;
+  const who = [S.who.cls,S.who.seat,S.who.name].filter(Boolean).join(' ');
+  const g=c.graded;
+  const inner = svgDefs()+`<rect width="${W}" height="${H}" fill="#1C1A17"/><g transform="translate(${-minX},${-minY})">${c.edges.map(e=>edgeSvg({...e,selected:false},byId,g?g.edgeMark[e.id]:null,false)).join('')}${c.nodes.map(n=>nodeSvg({...n,selected:false},g?g.nodeMark[n.id]:null,false)).join('')}</g><text x="16" y="${H-16}" font-size="13" fill="#A89E92">${esc(title)}${who?' · '+esc(who):''} · 流程圖練習器</text>`;
+  const svgStr=`<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" style="font-family:'LXGW WenKai TC','PingFang TC','Microsoft JhengHei',system-ui,sans-serif">${inner}</svg>`;
+  const img=new Image(); const url=URL.createObjectURL(new Blob([svgStr],{type:'image/svg+xml;charset=utf-8'}));
+  img.onload=()=>{const cv=document.createElement('canvas');cv.width=W*2;cv.height=H*2;const ctx=cv.getContext('2d');ctx.scale(2,2);ctx.drawImage(img,0,0);URL.revokeObjectURL(url);
+    cv.toBlob(b=>{const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=(title+(who?'-'+who:'')).replace(/\s+/g,'_')+'.png';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000);toast('圖片已下載')},'image/png')};
+  img.onerror=()=>toast('下載失敗，請改用螢幕截圖');
+  img.src=url;
+}
+
+/* ===================== Google 試算表 ===================== */
+function logResult(d){
+  if(!S.sheetUrl) return;
+  const row={t:new Date().toISOString(),cls:S.who.cls,seat:S.who.seat,name:S.who.name,
+    seconds:Math.round((Date.now()-S.qStart)/1000),...d};
+  const queue=store.get('queue',[]); queue.push(row); store.set('queue',queue); flushQueue();
+}
+async function flushQueue(){
+  if(!S.sheetUrl) return; let queue=store.get('queue',[]); if(!queue.length) return;
+  const sending=queue.slice(); store.set('queue',[]);
+  try{ await fetch(S.sheetUrl,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({rows:sending})}); }
+  catch(e){ store.set('queue',sending.concat(store.get('queue',[]))); }
+}
+function needWho(){
+  if(!S.sheetUrl) return false;
+  return !(S.who.cls&&S.who.seat&&S.who.name);
+}
+
+/* ===================== 設定與說明 ===================== */
+function openModal(html){$('#modalbox').innerHTML=html;$('#modal').classList.add('show')}
+function closeModal(){$('#modal').classList.remove('show')}
+function showHelp(){
+  openModal(`<div style="display:flex;justify-content:space-between;align-items:center"><h2>怎麼操作？</h2><button class="ghost sm" data-close="1">關閉</button></div>
+  <div class="help">
+    <div class="s"><span class="n">1</span><b>拖方塊</b><span>按住左邊的方塊，拖到畫布上放開。</span></div>
+    <div class="s"><span class="n">2</span><b>拉箭頭</b><span>按住方塊邊緣的小圓點，拖到下一個方塊上放開。</span></div>
+    <div class="s"><span class="n">3</span><b>選是或否</b><span>從菱形拉線出來時，要選這條路是「是」還是「否」。</span></div>
+  </div>
+  <p class="small muted">點一下線可以刪除或改「是／否」。雙擊方塊可以放回左邊。畫錯了按「復原」。</p>`);
+}
+function showSettings(){
+  if(TEACHER_PIN){const p=prompt('請輸入老師密碼');if(p!==TEACHER_PIN)return toast('密碼不對')}
+  const q=store.get('queue',[]);
+  openModal(`<div style="display:flex;justify-content:space-between;align-items:center"><h2>老師設定</h2><button class="ghost sm" data-close="1">關閉</button></div>
+  <p class="small muted">學生每按一次「批改」或「檢查」，結果就會送到你的 Google 試算表。設定方法請看資料夾裡的 <code>05-Google試算表設定.md</code>。</p>
+  <div class="kv"><label for="su">試算表網址</label><input id="su" placeholder="https://script.google.com/macros/s/…/exec" value="${esc(S.sheetUrl||'')}">
+  <span class="small muted">狀態</span><span class="small">${S.sheetUrl?'已設定':'尚未設定'}${q.length?`，還有 ${q.length} 筆紀錄等著送出`:''}</span></div>
+  <div class="actions" style="justify-content:space-between"><button class="sm" data-testsheet="1">測試連線</button><div style="display:flex;gap:8px"><button class="sm" data-resetdone="1">清除這台電腦的過關紀錄</button><button class="primary" data-savesheet="1">儲存</button></div></div>`);
+}
+
+/* ===================== 事件綁定 ===================== */
+function startQuestion(mode,qi){
+  if(needWho()) return toast('先在上面填班級、座號、姓名，老師才看得到你的作答');
+  S.qi=qi; S.qStart=Date.now(); S.mode=mode;
+  if(mode==='draw'){S.screen='draw';S.step=1;S.s2={start:null,end:null,has:null,which:null,checked:false};render();startCountdown();}
+  else if(mode==='trace'){S.screen='trace';S.tr={sel:null,checked:false};render();}
+  else if(mode==='sort'){S.screen='sort';setupSortCanvas();render();drawCanvas();}
+}
+function startCountdown(){let n=3;const b=$('#s1next');if(!b)return;const t=setInterval(()=>{n--;if(!document.body.contains(b)){clearInterval(t);return}if(n<=0){clearInterval(t);b.disabled=false;b.textContent='我看懂了，下一步'}else b.textContent=`我看懂了，下一步（${n}）`},1000)}
+function setupStep3(){const q=Q();S.s3={cards:shuffle([...q.nodes.map(n=>({id:n.id,text:n.text,sym:n.symbol})),...q.distractors.map((t,i)=>({id:'d'+i,text:t,sym:'none'}))]).map(c=>({...c,col:null,state:''})),sel:null,allOk:false,hintFor:null}}
+function setupDrawCanvas(){const q=Q();newCanvas({});S.cv.tray=shuffle(q.nodes.map(n=>({id:n.id,symbol:n.symbol,text:n.text})))}
+function setupSortCanvas(){
+  const q=Q(); newCanvas({lockNodes:true});
+  const nodes=shuffle(q.nodes.map(n=>({id:n.id,symbol:n.symbol,text:n.text,...nodeSize(n.symbol,n.text)})));
+  const cols=3; nodes.forEach((n,i)=>{n.x=80+(i%cols)*300+Math.random()*40;n.y=40+Math.floor(i/cols)*150+Math.random()*30});
+  S.cv.nodes=nodes;
+}
+function nextQuestion(){
+  const mode=S.mode; const n=S.qi+1;
+  if(n>=BANK.questions.length){toast('全部的題目都做完了，太厲害了！');S.screen='home';render();return}
+  startQuestion(mode,n);
+}
+function bind(){
+  const app=$('#app');
+  app.onclick=(ev)=>{
+    const t=ev.target;
+    const go=t.closest('[data-go]'); if(go){leaveCanvas(()=>{S.screen='home';render()});return}
+    const act=t.closest('[data-act]'); if(act){handleAct(act.dataset.act);return}
+    const mode=t.closest('[data-mode]'); if(mode){S.mode=mode.dataset.mode;store.set('mode',S.mode);render();return}
+    const qc=t.closest('[data-q]'); if(qc){saveWho();startQuestion(S.mode,+qc.dataset.q);return}
+    const s2=t.closest('[data-s2]'); if(s2){S.s2[s2.dataset.s2]=s2.dataset.v;S.s2.checked=false;render();return}
+    const has=t.closest('[data-has]'); if(has){S.s2.has=has.dataset.has==='1';S.s2.which=null;S.s2.checked=false;render();return}
+    const wh=t.closest('[data-which]'); if(wh){S.s2.which=wh.dataset.which;S.s2.checked=false;render();return}
+    const tr=t.closest('[data-tr]'); if(tr&&!(S.tr.checked&&S.tr.sel===Q().trace.answer)){S.tr.sel=+tr.dataset.tr;S.tr.checked=false;render();return}
+    const cv=t.closest('[data-cv]'); if(cv){handleCv(cv.dataset.cv);return}
+    // 步驟 3：點卡片／點欄位
+    if(S.screen==='draw'&&S.step===3){
+      const card=t.closest('[data-card]'); const col=t.closest('[data-col]');
+      if(card&&!col){S.s3.sel=S.s3.sel===card.dataset.card?null:card.dataset.card;render();return}
+      if(card&&col){ if(S.s3.sel&&S.s3.sel!==card.dataset.card){placeCard(S.s3.sel,col.dataset.col);return} S.s3.sel=S.s3.sel===card.dataset.card?null:card.dataset.card;render();return}
+      if(col&&S.s3.sel){placeCard(S.s3.sel,col.dataset.col);return}
+    }
+  };
+  ['w-cls','w-seat','w-name'].forEach(id=>{const el=$('#'+id);if(el)el.onchange=saveWho});
+  document.onpointermove=null; document.onpointerup=null; app.onpointerdown=null; drag=null;
+  // 步驟 3 拖拉
+  if(S.screen==='draw'&&S.step===3) bindStep3Drag();
+  // 畫布
+  const svg=$('#svg');
+  if(svg){
+    const cv=$('#cv');
+    cv.onpointerdown=cvPointerDown; cv.ondblclick=cvDblClick;
+    $('#tray').onpointerdown=cvPointerDown;
+    document.onpointermove=cvPointerMove; document.onpointerup=cvPointerUp;
+  }
+}
+function saveWho(){const c=$('#w-cls');if(!c)return;S.who={cls:c.value.trim(),seat:$('#w-seat').value.trim(),name:$('#w-name').value.trim()};store.set('who',S.who)}
+function handleAct(a){
+  if(a==='help') return showHelp();
+  if(a==='settings') return showSettings();
+  if(a==='free'){saveWho();S.screen='free';newCanvas({free:true});render();drawCanvas();return}
+  if(a==='back'){ if(S.step===4) leaveCanvas(()=>{S.step=3;render()}); else {S.step=Math.max(1,S.step-1);render()} return}
+  if(a==='next'){ S.step++; if(S.step===3) setupStep3(); if(S.step===4){setupDrawCanvas();render();drawCanvas();return} render(); return}
+  if(a==='check2'){ const s=S.s2; if(s.start==null||s.end==null||s.has==null||(s.has&&!s.which)) return toast('還有一題沒選'); s.checked=true; render(); return}
+  if(a==='check3'){ checkStep3(); return}
+  if(a==='checktr'){ if(S.tr.sel==null) return toast('先選一個答案'); S.tr.checked=true; const ok=S.tr.sel===Q().trace.answer; S.attempts['trace:'+Q().id]=(S.attempts['trace:'+Q().id]||0)+1; if(ok){S.done['trace:'+Q().id]=true;store.set('done',S.done)} logResult({mode:'trace',qid:Q().id,title:Q().title,result:ok?'過關':'未過',score:ok?'1/1':'0/1',attempt:S.attempts['trace:'+Q().id],hint:ok?'':'選了「'+Q().trace.options[S.tr.sel]+'」'}); render(); return}
+  if(a==='nextq'){ nextQuestion(); return}
+}
+function handleCv(a){
+  if(a==='undo') return cvUndo();
+  if(a==='clear'){ if(!S.cv.nodes.length&&!S.cv.edges.length) return; cvSnapshot(); hideRes(); S.cv.graded=null; if(!S.cv.free&&!S.cv.lockNodes) S.cv.tray.push(...S.cv.nodes); S.cv.nodes=S.cv.free?[]:S.cv.lockNodes?S.cv.nodes:[]; S.cv.edges=[]; drawCanvas(); return}
+  if(a==='png') return downloadPng();
+  if(a==='grade') return grade();
+  if(a==='fix'){ hideRes(); S.cv.graded=null; drawCanvas(); return}
+}
+function leaveCanvas(cb){ if(S.cv&&S.cv.nodes.length&&!(S.cv.graded&&S.cv.graded.allOk)){ if(!confirm('離開的話，畫布上的東西會不見，確定嗎？')) return } S.cv=null; closePop(); cb() }
+
+/* 步驟 3 */
+function placeCard(id,col){const c=S.s3.cards.find(x=>x.id===id);c.col=col;c.state='';S.s3.sel=null;S.s3.hintFor=null;render()}
+function checkStep3(){
+  const cards=S.s3.cards; let bad=0;
+  cards.forEach(c=>{ if(c.col===c.sym){c.state='ok'} else {c.state='';bad++;c.wrongCol=c.col;c.col=null} });
+  if(bad){ const w=cards.find(c=>c.wrongCol&&!c.col); S.s3.hintFor=w?w.wrongCol:null; cards.forEach(c=>c.wrongCol=null); toast(`有 ${bad} 張卡片放錯了，已經退回來，再試一次`); }
+  else S.s3.allOk=true;
+  render();
+}
+function bindStep3Drag(){
+  let d=null;
+  const onDown=(ev)=>{const card=ev.target.closest('[data-card]');if(!card)return;ev.preventDefault();d={id:card.dataset.card,el:card,ghost:null,sx:ev.clientX,sy:ev.clientY,moved:false}};
+  document.onpointermove=(ev)=>{ if(!d)return; if(!d.moved){ if(Math.hypot(ev.clientX-d.sx,ev.clientY-d.sy)<6)return; d.moved=true; d.ghost=d.el.cloneNode(true); d.ghost.classList.add('dragghost'); d.ghost.classList.remove('sel'); document.body.appendChild(d.ghost); d.el.classList.add('dragging'); }
+    d.ghost.style.left=(ev.clientX-30)+'px'; d.ghost.style.top=(ev.clientY-20)+'px';
+    document.querySelectorAll('.col').forEach(c=>c.classList.remove('over')); const el=document.elementFromPoint(ev.clientX,ev.clientY); const col=el&&el.closest('[data-col]'); if(col)col.classList.add('over'); };
+  document.onpointerup=(ev)=>{ if(!d)return; if(d.moved){ d.ghost.remove(); const el=document.elementFromPoint(ev.clientX,ev.clientY); const col=el&&el.closest('[data-col]'); const pool=el&&el.closest('#pool'); if(col) placeCard(d.id,col.dataset.col); else if(pool){const c=S.s3.cards.find(x=>x.id===d.id);c.col=null;c.state='';render()} else {d.el.classList.remove('dragging')} } d=null; };
+  $('#app').onpointerdown=onDown;
+}
+
+/* modal 事件 */
+$('#modal').addEventListener('click',ev=>{
+  if(ev.target.id==='modal'||ev.target.closest('[data-close]')) return closeModal();
+  if(ev.target.closest('[data-savesheet]')){S.sheetUrl=$('#su').value.trim();store.set('sheetUrl',S.sheetUrl);closeModal();toast(S.sheetUrl?'已儲存，之後的作答會送到試算表':'已清除試算表設定');render();flushQueue();return}
+  if(ev.target.closest('[data-testsheet]')){const u=$('#su').value.trim();if(!u)return toast('先貼上網址');window.open(u,'_blank');toast('已在新分頁打開，看到「連線正常」就代表成功');return}
+  if(ev.target.closest('[data-resetdone]')){S.done={};store.set('done',{});closeModal();toast('已清除');render();return}
+});
+document.addEventListener('keydown',ev=>{
+  if(!S.cv) return; if(ev.target.tagName==='INPUT') return;
+  if((ev.key==='Delete'||ev.key==='Backspace')){ const c=S.cv; if(c.selEdge){cvSnapshot();hideRes();c.graded=null;c.edges=c.edges.filter(e=>e.id!==c.selEdge);c.selEdge=null;closePop();drawCanvas()} else if(c.selNode&&!c.lockNodes){const n=c.nodes.find(x=>x.id===c.selNode);cvSnapshot();hideRes();c.graded=null;c.edges=c.edges.filter(e=>e.from!==n.id&&e.to!==n.id);c.nodes=c.nodes.filter(x=>x!==n);if(!c.free)c.tray.push(n);c.selNode=null;drawCanvas()} }
+  if((ev.ctrlKey||ev.metaKey)&&ev.key==='z'){ev.preventDefault();cvUndo()}
+});
+window.addEventListener('beforeunload',ev=>{ if(S.cv&&S.cv.nodes.length&&!(S.cv.graded&&S.cv.graded.allOk)){ev.preventDefault();ev.returnValue=''} });
+function checkNarrow(){$('#narrow').classList.toggle('show',window.innerWidth<900)}
+window.addEventListener('resize',checkNarrow);
+
+/* 啟動 */
+S.mode=store.get('mode','draw'); if(!MODES[S.mode]) S.mode='draw';
+render(); checkNarrow(); flushQueue();
+document.fonts&&document.fonts.ready.then(()=>{ if(S.cv) { S.cv.nodes.forEach(n=>Object.assign(n,nodeSize(n.symbol,n.text))); drawCanvas(); } });
+</script>
+</body>
+</html>
