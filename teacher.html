@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>流程圖練習器 老師看板</title>
+<link href="https://fonts.googleapis.com/css2?family=LXGW+WenKai+TC:wght@300;400;700&display=swap" rel="stylesheet">
+<style>
+:root{--primary:#C1B2A3;--primary-pressed:#AD9D8C;--on-primary:#1C1A17;--link:#D8CCBF;--bg:#1C1A17;--surface:#262320;--border:#3D3833;--border-strong:#57504A;--text:#F3EEE7;--text-2:#D9D0C5;--muted:#A89E92;--faint:#7A7066;--success:#8FBF8A;--success-soft:#B5D9B1;--warning:#E0B35C;--danger:#E07A6B;--danger-soft:#F0B3A9;--radius:8px}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:'LXGW WenKai TC',system-ui,-apple-system,'PingFang TC','Microsoft JhengHei',sans-serif;font-size:16px;line-height:1.6}
+button{font-family:inherit;font-size:15px;cursor:pointer;border-radius:var(--radius);border:1px solid var(--border-strong);background:transparent;color:var(--text-2);padding:9px 16px;min-height:40px}
+button:hover{border-color:var(--primary);color:var(--text)}
+button.primary{background:var(--primary);color:var(--on-primary);border-color:var(--primary);font-weight:700}
+button.sm{padding:6px 12px;min-height:32px;font-size:13px}
+button.tab{border-radius:999px}
+button.tab.on{background:var(--primary);color:var(--on-primary);border-color:var(--primary);font-weight:700}
+input,select{font-family:inherit;font-size:15px;background:var(--bg);color:var(--text);border:1px solid var(--border-strong);border-radius:var(--radius);padding:8px 10px;min-height:40px}
+.topbar{height:56px;padding:0 24px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px;position:sticky;top:0;z-index:5}
+.brand{display:flex;align-items:center;gap:12px;font-weight:700}
+.logo{width:28px;height:28px;border-radius:8px;background:var(--primary);display:flex;align-items:center;justify-content:center}
+.wrap{max-width:1180px;margin:0 auto;padding:28px 24px 60px;display:flex;flex-direction:column;gap:22px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px 22px}
+.row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.muted{color:var(--muted)}.small{font-size:13px}.faint{color:var(--faint)}
+h1{margin:0;font-size:24px;font-weight:700}h2{margin:0;font-size:18px;font-weight:700}
+.tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.tile{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px 18px;display:flex;flex-direction:column;gap:4px}
+.tile .n{font-size:30px;font-weight:700;line-height:1.1;font-variant-numeric:tabular-nums}
+.tile .l{font-size:13px;color:var(--muted)}
+.tile.warn .n{color:var(--warning)}
+table{border-collapse:separate;border-spacing:0;width:100%;font-variant-numeric:tabular-nums}
+th,td{padding:8px 10px;border-bottom:1px solid var(--border);text-align:center;white-space:nowrap;font-size:14px}
+th{color:var(--muted);font-weight:400;font-size:13px}
+th.q{max-width:120px;white-space:normal;line-height:1.3}
+td.name,th.name{text-align:left;position:sticky;left:0;background:var(--surface)}
+.cell{display:inline-flex;align-items:center;justify-content:center;min-width:38px;height:30px;border-radius:8px;cursor:pointer;font-weight:700;gap:4px}
+.cell.ok{background:rgba(143,191,138,.18);color:var(--success-soft)}
+.cell.bad{background:rgba(224,122,107,.18);color:var(--danger-soft)}
+.cell.stuck{background:rgba(224,179,92,.22);color:var(--warning)}
+.cell.none{color:var(--faint)}
+.cell small{font-weight:400;font-size:11px;opacity:.8}
+.scroll{overflow-x:auto}
+.list{display:flex;flex-direction:column;gap:8px}
+.item{display:grid;grid-template-columns:150px 1fr auto;gap:12px;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:14px}
+.item:last-child{border-bottom:0}
+.pill{font-size:12px;padding:1px 10px;border-radius:999px}
+.pill.ok{background:rgba(143,191,138,.18);color:var(--success-soft)}
+.pill.bad{background:rgba(224,122,107,.18);color:var(--danger-soft)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:900px){.tiles{grid-template-columns:repeat(2,minmax(0,1fr))}.two{grid-template-columns:1fr}}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:50;display:none;align-items:center;justify-content:center;padding:24px}
+.modal.show{display:flex}
+.box{background:var(--surface);border:1px solid var(--border-strong);border-radius:16px;padding:24px 28px;width:min(560px,100%);display:flex;flex-direction:column;gap:14px;max-height:90vh;overflow:auto}
+.kv{display:grid;grid-template-columns:110px 1fr;gap:10px 12px;align-items:center;font-size:14px}
+code{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:1px 6px;font-size:13px}
+.status{font-size:13px;display:inline-flex;align-items:center;gap:6px;color:var(--muted)}
+.status i{width:8px;height:8px;border-radius:50%;background:var(--faint);display:inline-block}
+.status.on i{background:var(--success)}.status.err i{background:var(--danger)}
+.empty{padding:40px;text-align:center;color:var(--faint)}
+.toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:var(--surface);border:1px solid var(--warning);padding:12px 18px;border-radius:12px;z-index:60;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.show{opacity:1}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="brand"><span class="logo"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#1C1A17" stroke-width="1.8"><rect x="2" y="1.5" width="12" height="4" rx="2"/><path d="M8 5.5v3M3 12l5-3.5 5 3.5-5 3z"/></svg></span>流程圖練習器 · 老師看板</div>
+  <div class="row"><span class="status" id="st"><i></i>尚未連線</span><button class="sm" id="refresh">重新整理</button><button class="sm" id="setup">設定</button></div>
+</div>
+<div class="wrap" id="main"></div>
+<div class="modal" id="modal"><div class="box">
+  <h2>連線設定</h2>
+  <p class="small muted">跟學生用的網頁一樣，貼上 Google Apps Script 的網址。看板密碼是在 Apps Script 程式碼最上面 <code>VIEW_KEY</code> 設定的那組，給其他老師時一起給他。</p>
+  <div class="kv"><label for="u">試算表網址</label><input id="u" placeholder="https://script.google.com/macros/s/…/exec"><label for="k">看板密碼</label><input id="k" placeholder="沒設就留白"></div>
+  <div class="row" style="justify-content:flex-end"><button id="cancel">取消</button><button class="primary" id="save">儲存並讀取</button></div>
+</div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ===== 老師設定區 ===== */
+const SHEET_URL_DEFAULT = "";   // 跟 index.html 一樣，貼上 Apps Script 網址，其他老師就不用自己貼
+/* ===================== */
+const QUESTIONS = [["q1","泡一碗泡麵"],["q2","算長方形的面積"],["q3","攝氏換華氏"],["q4","要不要帶雨傘"],["q5","及格了嗎"],["q6","搭電梯還是走樓梯"],["q7","奇數還是偶數"]];
+const MODES = ["看題畫圖","看圖答結果","排序方塊"];
+const $=s=>document.querySelector(s);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const store={get(k,d){try{const v=localStorage.getItem('fct_'+k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem('fct_'+k,JSON.stringify(v))}catch(e){}}};
+let toastT;function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),2800)}
+const S={url:store.get('url',SHEET_URL_DEFAULT),key:store.get('key',''),rows:[],cls:store.get('cls','全部'),mode:store.get('mode','看題畫圖'),loadedAt:null,detail:null};
+
+function setStatus(kind,text){const el=$('#st');el.className='status '+kind;el.innerHTML='<i></i>'+esc(text)}
+
+/* 用 JSONP 讀資料（Apps Script 最穩的方式） */
+function load(){
+  if(!S.url){render();return openSetup()}
+  setStatus('','讀取中…');
+  const cb='fc_cb_'+Date.now();
+  const sc=document.createElement('script');
+  const timer=setTimeout(()=>{cleanup();setStatus('err','讀不到資料，檢查網址或密碼');toast('讀取逾時：檢查網址是否正確、是否已部署成「所有人」')},15000);
+  function cleanup(){clearTimeout(timer);delete window[cb];sc.remove()}
+  window[cb]=(data)=>{cleanup();
+    if(!data||data.error){setStatus('err',data&&data.error==='bad_key'?'密碼不對':'讀取失敗');toast(data&&data.error==='bad_key'?'看板密碼不對':'讀取失敗：'+(data&&data.error||'未知'));render();return}
+    S.rows=(data.rows||[]).map(r=>({time:new Date(r[0]),cls:String(r[1]||''),seat:String(r[2]||''),name:String(r[3]||''),mode:String(r[4]||''),qid:String(r[5]||''),title:String(r[6]||''),result:String(r[7]||''),score:String(r[8]||''),attempt:+r[9]||0,seconds:+r[10]||0,hint:String(r[11]||'')}));
+    S.loadedAt=new Date(); setStatus('on','已連線 · '+S.rows.length+' 筆 · '+S.loadedAt.toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'})); render();};
+  sc.src=S.url+(S.url.includes('?')?'&':'?')+'action=data&key='+encodeURIComponent(S.key)+'&callback='+cb+'&_='+Date.now();
+  sc.onerror=()=>{cleanup();setStatus('err','連不上');toast('連不上試算表，確認網址結尾是 /exec')};
+  document.body.appendChild(sc);
+}
+
+function render(){
+  const main=$('#main');
+  if(!S.url){main.innerHTML='<div class="card empty">先按右上角「設定」貼上試算表網址</div>';return}
+  const classes=[...new Set(S.rows.map(r=>r.cls).filter(Boolean))].sort();
+  if(S.cls!=='全部'&&!classes.includes(S.cls)&&classes.length) S.cls='全部';
+  const rows=S.rows.filter(r=>(S.cls==='全部'||r.cls===S.cls));
+  const mrows=rows.filter(r=>r.mode===S.mode);
+  // 學生
+  const stuMap=new Map();
+  rows.forEach(r=>{const k=r.cls+'|'+r.seat+'|'+r.name;if(!stuMap.has(k))stuMap.set(k,{cls:r.cls,seat:r.seat,name:r.name})});
+  const students=[...stuMap.values()].sort((a,b)=>a.cls.localeCompare(b.cls)||(+a.seat||0)-(+b.seat||0)||a.seat.localeCompare(b.seat));
+  const qids=QUESTIONS.map(q=>q[0]); mrows.forEach(r=>{if(!qids.includes(r.qid))qids.push(r.qid)});
+  const qTitle=Object.fromEntries(QUESTIONS); mrows.forEach(r=>{if(!qTitle[r.qid])qTitle[r.qid]=r.title});
+  // 每格
+  const cell={}; mrows.forEach(r=>{const k=r.cls+'|'+r.seat+'|'+r.name+'|'+r.qid;const c=cell[k]||(cell[k]={tries:0,pass:false,list:[]});c.tries++;c.list.push(r);if(r.result==='過關')c.pass=true});
+  const today=new Date().toDateString();
+  let passSum=0,stuck=[];
+  students.forEach(s=>{qids.forEach(q=>{const c=cell[s.cls+'|'+s.seat+'|'+s.name+'|'+q];if(!c)return;if(c.pass)passSum++;else if(c.tries>=3)stuck.push({s,q,c})})});
+  const tiles=`<div class="tiles">
+    <div class="tile"><span class="n">${students.length}</span><span class="l">有作答的學生</span></div>
+    <div class="tile"><span class="n">${students.length?(passSum/students.length).toFixed(1):'0'}<span class="small muted"> ／ ${qids.length}</span></span><span class="l">平均過關題數（${esc(S.mode)}）</span></div>
+    <div class="tile"><span class="n">${rows.filter(r=>r.time.toDateString()===today).length}</span><span class="l">今天作答次數</span></div>
+    <div class="tile ${stuck.length?'warn':''}"><span class="n">${stuck.length}</span><span class="l">卡住（同一題試 3 次以上還沒過）</span></div></div>`;
+  const head=`<div class="row" style="justify-content:space-between">
+    <div class="row"><h1>作答狀況</h1><select id="cls"><option value="全部">全部班級</option>${classes.map(c=>`<option ${c===S.cls?'selected':''}>${esc(c)}</option>`).join('')}</select></div>
+    <div class="row">${MODES.map(m=>`<button class="tab sm ${m===S.mode?'on':''}" data-mode="${m}">${m}</button>`).join('')}</div></div>`;
+  const table = students.length ? `<div class="scroll"><table><thead><tr><th class="name">班級 座號 姓名</th>${qids.map((q,i)=>`<th class="q">${i+1}<br>${esc(qTitle[q]||q)}</th>`).join('')}<th>過關</th></tr></thead><tbody>
+    ${students.map(s=>{let n=0;const tds=qids.map(q=>{const k=s.cls+'|'+s.seat+'|'+s.name+'|'+q;const c=cell[k];if(!c)return '<td><span class="cell none">—</span></td>';if(c.pass)n++;const cl=c.pass?'ok':c.tries>=3?'stuck':'bad';return `<td><span class="cell ${cl}" data-k="${esc(k)}" title="點一下看每次作答">${c.pass?'✓':'✗'}<small>${c.tries}次</small></span></td>`}).join('');return `<tr><td class="name">${esc(s.cls)} ${esc(s.seat)} ${esc(s.name)}</td>${tds}<td>${n}／${qids.length}</td></tr>`}).join('')}
+    </tbody></table></div><p class="small faint" style="margin:10px 0 0">✓ 過關　✗ 還沒過　橘色＝試了 3 次以上　格子裡的數字是試了幾次。點格子可以看每一次的提示。</p>`
+    : `<div class="empty">${S.rows.length?'這個班／這個模式還沒有人作答':'還沒有任何作答紀錄。學生按「批改」後就會出現。'}</div>`;
+  const recent=rows.slice().sort((a,b)=>b.time-a.time).slice(0,12);
+  const recentHtml=`<div class="card"><h2 style="margin-bottom:8px">最近作答</h2><div class="list">${recent.length?recent.map(r=>`<div class="item"><span class="muted small">${r.time.toLocaleString('zh-TW',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})}</span><span>${esc(r.cls)} ${esc(r.seat)} ${esc(r.name)} · ${esc(r.mode)} · ${esc(r.title)}${r.hint?`<br><span class="small muted">${esc(r.hint)}</span>`:''}</span><span class="pill ${r.result==='過關'?'ok':'bad'}">${esc(r.result)} ${esc(r.score)}</span></div>`).join(''):'<div class="empty">沒有紀錄</div>'}</div></div>`;
+  const stuckHtml=`<div class="card"><h2 style="margin-bottom:8px">需要幫忙的學生</h2><div class="list">${stuck.length?stuck.map(x=>{const last=x.c.list[x.c.list.length-1];return `<div class="item" style="grid-template-columns:1fr auto"><span>${esc(x.s.cls)} ${esc(x.s.seat)} ${esc(x.s.name)} · ${esc(qTitle[x.q]||x.q)}<br><span class="small muted">最後一次提示：${esc(last.hint||'—')}</span></span><span class="pill bad">${x.c.tries} 次</span></div>`}).join(''):'<div class="empty">目前沒有人卡住</div>'}</div></div>`;
+  const detail = S.detail && cell[S.detail] ? (()=>{const c=cell[S.detail];const r0=c.list[0];return `<div class="card" id="detail"><div class="row" style="justify-content:space-between"><h2>${esc(r0.cls)} ${esc(r0.seat)} ${esc(r0.name)} · ${esc(r0.title)}</h2><button class="sm" id="closedetail">關閉</button></div><div class="list">${c.list.map((r,i)=>`<div class="item"><span class="muted small">第 ${i+1} 次 · ${r.time.toLocaleString('zh-TW',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})} · ${r.seconds} 秒</span><span>${esc(r.hint||'（沒有提示，全部正確）')}</span><span class="pill ${r.result==='過關'?'ok':'bad'}">${esc(r.result)} ${esc(r.score)}</span></div>`).join('')}</div></div>`})() : '';
+  main.innerHTML=head+tiles+`<div class="card">${table}</div>`+detail+`<div class="two">${stuckHtml}${recentHtml}</div>`;
+  const sel=$('#cls'); if(sel) sel.onchange=()=>{S.cls=sel.value;store.set('cls',S.cls);S.detail=null;render()};
+  main.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>{S.mode=b.dataset.mode;store.set('mode',S.mode);S.detail=null;render()});
+  main.querySelectorAll('[data-k]').forEach(b=>b.onclick=()=>{S.detail=b.dataset.k;render();const d=$('#detail');if(d)d.scrollIntoView({behavior:'smooth',block:'nearest'})});
+  const cd=$('#closedetail'); if(cd) cd.onclick=()=>{S.detail=null;render()};
+}
+function openSetup(){$('#u').value=S.url||'';$('#k').value=S.key||'';$('#modal').classList.add('show');$('#u').focus()}
+$('#setup').onclick=openSetup;
+$('#cancel').onclick=()=>$('#modal').classList.remove('show');
+$('#save').onclick=()=>{S.url=$('#u').value.trim();S.key=$('#k').value.trim();store.set('url',S.url);store.set('key',S.key);$('#modal').classList.remove('show');load()};
+$('#refresh').onclick=load;
+$('#modal').addEventListener('click',e=>{if(e.target.id==='modal')$('#modal').classList.remove('show')});
+load();
+setInterval(()=>{if(S.url&&document.visibilityState==='visible')load()},60000);
+</script>
+</body>
+</html>
