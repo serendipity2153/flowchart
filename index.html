@@ -293,7 +293,7 @@ code{background:var(--bg);border:1px solid var(--border);border-radius:6px;paddi
 
 <script>
 /* ============ 老師設定區（可以直接改這裡） ============ */
-const SHEET_URL_DEFAULT = "";   // 貼上 Google Apps Script 網址，例如 "https://script.google.com/macros/s/xxxx/exec"
+const SHEET_URL_DEFAULT = "https://script.google.com/macros/s/AKfycbynvQvpxCZFPE7eB7UNeJKA-V93Rn-eUVv2ldOAiVE0QPLRRRNHV13ZNGutJNjtvoXWAw/exec";   // 貼上 Google Apps Script 網址，例如 "https://script.google.com/macros/s/xxxx/exec"
 const TEACHER_PIN = "";         // 想鎖住「老師設定」就填 4 位數字，不填就不鎖
 /* ====================================================== */
 
@@ -377,7 +377,7 @@ function viewHome(){
     <div class="grid4">${BANK.questions.map((q,i)=>`<button class="qcard" data-q="${i}"><span class="t">${i+1} ${esc(q.title)}</span><span style="display:flex;gap:6px"><span class="tag ${q.type==='sequence'?'seq':'dec'}">${q.type==='sequence'?'直敘':'選擇'}</span>${S.done[m+':'+q.id]?'<span class="tag ok">已過關</span>':''}</span></button>`).join('')}
     </div></div>`;
   const sheetOn = !!S.sheetUrl;
-  return topbar('<span class="brand">流程圖練習器</span>', `<span class="status ${sheetOn?'on':''}"><i></i>${sheetOn?'已連線到老師的試算表':'尚未連線試算表'}</span><button class="ghost sm" data-act="help">怎麼操作？</button><button class="ghost sm" data-act="settings">老師設定</button>`)+
+  return topbar('<span class="brand">流程圖練習器</span>', `<span class="status ${sheetOn?'on':''}"><i></i>${sheetOn?'已連線到老師的試算表':'尚未連線試算表'}</span><button class="ghost sm" data-act="help">怎麼操作？</button>${location.hash==="#teacher"?'<button class="ghost sm" data-act="settings">老師設定</button>':''}`)+
   `<div class="page"><div class="wrap">
     <div style="display:flex;flex-direction:column;gap:6px"><h1>今天要怎麼練？</h1><p class="muted">先選一種練法，再選一題。畫完電腦會馬上告訴你對不對。</p></div>
     <div class="card who"><span style="font-weight:700;font-size:14px;color:var(--muted)">我是</span>
@@ -804,7 +804,7 @@ function showSettings(){
   if(TEACHER_PIN){const p=prompt('請輸入老師密碼');if(p!==TEACHER_PIN)return toast('密碼不對')}
   const q=store.get('queue',[]);
   openModal(`<div style="display:flex;justify-content:space-between;align-items:center"><h2>老師設定</h2><button class="ghost sm" data-close="1">關閉</button></div>
-  <p class="small muted">學生每按一次「批改」或「檢查」，結果就會送到你的 Google 試算表。設定方法請看資料夾裡的 <code>05-Google試算表設定.md</code>。</p>
+  <p class="small muted">學生每按一次「批改」或「檢查」，結果就會送到你的 Google 試算表。設定方法請看資料夾裡的 <code>05-Google試算表設定.md</code>。要看全班進度，打開 <a href="teacher.html" target="_blank">老師看板</a>。</p>
   <div class="kv"><label for="su">試算表網址</label><input id="su" placeholder="https://script.google.com/macros/s/…/exec" value="${esc(S.sheetUrl||'')}">
   <span class="small muted">狀態</span><span class="small">${S.sheetUrl?'已設定':'尚未設定'}${q.length?`，還有 ${q.length} 筆紀錄等著送出`:''}</span></div>
   <div class="actions" style="justify-content:space-between"><button class="sm" data-testsheet="1">測試連線</button><div style="display:flex;gap:8px"><button class="sm" data-resetdone="1">清除這台電腦的過關紀錄</button><button class="primary" data-savesheet="1">儲存</button></div></div>`);
@@ -921,6 +921,7 @@ document.addEventListener('keydown',ev=>{
 window.addEventListener('beforeunload',ev=>{ if(S.cv&&S.cv.nodes.length&&!(S.cv.graded&&S.cv.graded.allOk)){ev.preventDefault();ev.returnValue=''} });
 function checkNarrow(){$('#narrow').classList.toggle('show',window.innerWidth<900)}
 window.addEventListener('resize',checkNarrow);
+window.addEventListener('hashchange',()=>{if(S.screen==='home')render()});
 
 /* 啟動 */
 S.mode=store.get('mode','draw'); if(!MODES[S.mode]) S.mode='draw';
