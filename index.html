@@ -161,6 +161,13 @@ p{margin:0}
 .modal{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:90;display:none;align-items:center;justify-content:center;padding:24px}
 .modal.show{display:flex}
 .modal .box{background:var(--surface);border:1px solid var(--border-strong);border-radius:16px;padding:24px 28px;width:min(640px,100%);max-height:90vh;overflow:auto;display:flex;flex-direction:column;gap:16px}
+.symtab{width:100%;border-collapse:separate;border-spacing:0 6px}
+.symtab td{background:var(--bg);padding:8px 14px;vertical-align:middle;font-size:15px}
+.symtab td:first-child{border-radius:10px 0 0 10px;width:110px;text-align:center}
+.symtab td:last-child{border-radius:0 10px 10px 0}
+.symtab .nm{font-weight:700;white-space:nowrap;width:110px}
+.symtab .use{font-size:12px;padding:1px 8px;border-radius:999px;background:rgba(193,178,163,.2);color:var(--link);margin-left:6px;white-space:nowrap}
+.symtab tr.extra td{opacity:.72}
 .help{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
 .help .s{background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:6px;font-size:14px}
 .help .s b{font-size:15px}
@@ -1058,7 +1065,7 @@ function viewHome(){
     <div class="grid4">${BANK.questions.map((q,i)=>`<button class="qcard" data-q="${i}"><span class="t">${i+1} ${esc(q.title)}</span><span style="display:flex;gap:6px"><span class="tag ${TYPE_CLS[q.type]||'seq'}">${TYPE_ZH[q.type]||q.type}</span>${S.done[m+':'+q.id]?'<span class="tag ok">已過關</span>':''}</span></button>`).join('')}
     </div></div>`;
   const sheetOn = !!S.sheetUrl;
-  return topbar('<span class="brand">流程圖練習器</span>', `<span class="status ${sheetOn?'on':''}"><i></i>${sheetOn?'已連線到老師的試算表':'尚未連線試算表'}</span><button class="ghost sm" data-act="help">怎麼操作？</button>${location.hash==="#teacher"?'<button class="ghost sm" data-act="settings">老師設定</button>':''}`)+
+  return topbar('<span class="brand">流程圖練習器</span>', `<span class="status ${sheetOn?'on':''}"><i></i>${sheetOn?'已連線到老師的試算表':'尚未連線試算表'}</span><button class="ghost sm" data-act="symbols">符號說明</button><button class="ghost sm" data-act="help">怎麼操作？</button>${location.hash==="#teacher"?'<button class="ghost sm" data-act="settings">老師設定</button>':''}`)+
   `<div class="page"><div class="wrap">
     <div style="display:flex;flex-direction:column;gap:6px"><h1>今天要怎麼練？</h1><p class="muted">先選一種練法，再選一題。畫完電腦會馬上告訴你對不對。</p></div>
     <div class="card who"><span style="font-weight:700;font-size:14px;color:var(--muted)">我是</span>
@@ -1068,7 +1075,7 @@ function viewHome(){
     ${qlist}
     ${m==='free'?'<div class="actions" style="justify-content:flex-start"><button class="primary" data-act="free">打開自由畫布</button></div>':''}
     <div class="card legend"><span style="font-size:14px;font-weight:700;color:var(--muted)">符號</span>
-      ${BANK.symbols.map(s=>`<span class="it"><span class="sw ${s.type}"></span>${esc(s.zh)} <span class="muted">${esc(s.en)}</span></span>`).join('')}</div>
+      ${BANK.symbols.map(s=>`<span class="it"><span class="sw ${s.type}"></span>${esc(s.zh)} <span class="muted">${esc(s.en)}</span></span>`).join('')}<button class="sm" data-act="symbols" style="margin-left:auto">看完整符號表</button></div>
   </div></div>`;
 }
 
@@ -1117,7 +1124,7 @@ function viewDraw(){
         <span class="hint ${badHint?'bad':''}">${hint}</span></div>`;
     };
     body=`<div class="wrap" style="max-width:1180px;gap:18px">
-      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:16px;flex-wrap:wrap"><h1 style="font-size:22px">每一句話該用什麼符號？把卡片拖到下面的欄位</h1><span class="small muted">點一下卡片再點欄位也可以。用不到的句子，丟到「不需要」</span></div>
+      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:16px;flex-wrap:wrap"><h1 style="font-size:22px">每一句話該用什麼符號？把卡片拖到下面的欄位</h1><span class="small muted">點一下卡片再點欄位也可以。用不到的句子，丟到「不需要」 <button class="sm" data-act="symbols">符號說明</button></span></div>
       <div class="card" style="display:flex;flex-direction:column;gap:10px"><div style="display:flex;justify-content:space-between"><span class="small muted" style="font-weight:700">句子卡</span><span class="small" style="color:var(--warning)">${pool.length?`還有 ${pool.length} 張沒放`:'都放好了！'}</span></div>
         <div class="pool" id="pool">${pool.map(c=>`<div class="scard ${S.s3.sel===c.id?'sel':''}" data-card="${c.id}">${esc(c.text)}</div>`).join('')}</div></div>
       <div class="cols">
@@ -1168,7 +1175,7 @@ function canvasBody(){
   return `<div class="work"><div class="tray"><div class="h"><span>${trayTitle}</span><span class="cnt" id="traycnt"></span></div>
     <p class="small muted" style="line-height:1.5">${free?'把符號拖到右邊，雙擊方塊可以改字。':'把方塊拖到右邊，從方塊邊緣的小圓點拉線接到下一個。'}</p>
     <div id="tray" style="display:flex;flex-direction:column;gap:10px"></div>
-    <div class="tips"><b>小提醒</b><span>判斷（菱形）一定要有「是」和「否」兩條路。</span><span>箭頭有方向，從上一步指向下一步。</span><span>點一下線可以刪除；雙擊方塊${free?'改字':'放回左邊'}。</span></div></div>
+    <button class="sm" data-act="symbols">符號說明</button><div class="tips"><b>小提醒</b><span>判斷（菱形）一定要有「是」和「否」兩條路。</span><span>箭頭有方向，從上一步指向下一步。</span><span>點一下線可以刪除；雙擊方塊${free?'改字':'放回左邊'}。</span></div></div>
     <div class="cv" id="cv"><svg id="svg" xmlns="http://www.w3.org/2000/svg"></svg><div class="empty" id="cvempty">把左邊的方塊拖進來<br><span class="small">從方塊邊緣的小圓點拉線，接到下一個方塊</span></div></div></div>`;
 }
 
@@ -1485,7 +1492,7 @@ function needWho(){
 }
 
 /* ===================== 設定與說明 ===================== */
-function openModal(html){$('#modalbox').innerHTML=html;$('#modal').classList.add('show')}
+function openModal(html){$('#modalbox').style.width='';$('#modalbox').innerHTML=html;$('#modal').classList.add('show')}
 function closeModal(){$('#modal').classList.remove('show')}
 function showHelp(){
   openModal(`<div style="display:flex;justify-content:space-between;align-items:center"><h2>怎麼操作？</h2><button class="ghost sm" data-close="1">關閉</button></div>
@@ -1495,6 +1502,40 @@ function showHelp(){
     <div class="s"><span class="n">3</span><b>選是或否</b><span>從菱形拉線出來時，要選這條路是「是」還是「否」。</span></div>
   </div>
   <p class="small muted">點一下線可以刪除或改「是／否」。雙擊方塊可以放回左邊。畫錯了按「復原」。</p>`);
+}
+const SYMBOL_TABLE=[
+  ['terminal','開始／結束','流程的開始或結束（副程式的結束叫「返回」）',true],
+  ['io','輸入／輸出','輸入或輸出資料',true],
+  ['process','處理程序','要執行或處理的程序',true],
+  ['decision','決策判斷','針對條件進行判斷，以決定執行的流向',true],
+  ['loop','迴圈','重複執行指定的次數',false],
+  ['arrow','流向線','流程進行的方向',true],
+  ['comment','註解','表示附註說明之用',false],
+  ['subroutine','副程式','已定義流程的組合',true],
+  ['document','文件','輸入或輸出文件',false],
+];
+function symIcon(t){
+  const st='stroke-width="2" stroke-linejoin="round"';
+  const c={terminal:['#9DBF9E','#27342A'],io:['#E0B35C','#3A3122'],process:['#8FA9C9','#232B36'],decision:['#C49AB8','#332733'],subroutine:['#D4A08A','#3A2C26']}[t]||['#A89E92','#2E2A26'];
+  const f=`fill="${c[1]}" stroke="${c[0]}" ${st}`;
+  const shapes={
+    terminal:`<rect x="8" y="6" width="64" height="28" rx="14" ${f}/>`,
+    io:`<polygon points="18,6 74,6 62,34 6,34" ${f}/>`,
+    process:`<rect x="8" y="6" width="64" height="28" rx="3" ${f}/>`,
+    decision:`<polygon points="40,3 74,20 40,37 6,20" ${f}/>`,
+    loop:`<polygon points="20,6 60,6 72,20 60,34 20,34 8,20" ${f}/>`,
+    arrow:`<line x1="8" y1="20" x2="66" y2="20" stroke="${c[0]}" stroke-width="2.5"/><polygon points="64,14 74,20 64,26" fill="${c[0]}"/>`,
+    comment:`<line x1="4" y1="20" x2="30" y2="20" stroke="${c[0]}" stroke-width="2" stroke-dasharray="4 3"/><rect x="30" y="6" width="44" height="28" fill="${c[1]}" stroke="${c[0]}" stroke-width="2" stroke-dasharray="4 3"/>`,
+    subroutine:`<rect x="8" y="6" width="64" height="28" rx="2" ${f}/><line x1="16" y1="6" x2="16" y2="34" stroke="${c[0]}" stroke-width="2"/><line x1="64" y1="6" x2="64" y2="34" stroke="${c[0]}" stroke-width="2"/>`,
+    document:`<path d="M8 6 H72 V30 C58 22 46 40 30 32 C22 28 14 30 8 33 Z" ${f}/>`,
+  };
+  return `<svg width="80" height="40" viewBox="0 0 80 40" aria-hidden="true">${shapes[t]}</svg>`;
+}
+function showSymbols(){
+  openModal(`<div style="display:flex;justify-content:space-between;align-items:center"><h2>流程圖符號說明</h2><button class="ghost sm" data-close="1">關閉</button></div>
+  <p class="small muted">標「這裡會用到」的是練習時要用的符號；其他的先認識就好。</p>
+  <table class="symtab"><tbody>${SYMBOL_TABLE.map(([t,n,d,u])=>`<tr class="${u?'':'extra'}"><td>${symIcon(t)}</td><td class="nm">${n}${u?'<br><span class="use">這裡會用到</span>':''}</td><td>${d}</td></tr>`).join('')}</tbody></table>`);
+  $('#modalbox').style.width='min(720px,100%)';
 }
 function showSettings(){
   if(TEACHER_PIN){const p=prompt('請輸入老師密碼');if(p!==TEACHER_PIN)return toast('密碼不對')}
@@ -1565,6 +1606,7 @@ function bind(){
 function saveWho(){const c=$('#w-cls');if(!c)return;S.who={cls:c.value.trim(),seat:$('#w-seat').value.trim(),name:$('#w-name').value.trim()};store.set('who',S.who)}
 function handleAct(a){
   if(a==='help') return showHelp();
+  if(a==='symbols') return showSymbols();
   if(a==='settings') return showSettings();
   if(a==='free'){saveWho();S.screen='free';newCanvas({free:true});render();drawCanvas();return}
   if(a==='back'){ if(S.step===4) leaveCanvas(()=>{S.step=3;render()}); else {S.step=Math.max(1,S.step-1);render()} return}
