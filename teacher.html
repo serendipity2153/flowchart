@@ -78,9 +78,9 @@ code{background:var(--bg);border:1px solid var(--border);border-radius:6px;paddi
 
 <script>
 /* ===== 老師設定區 ===== */
-const SHEET_URL_DEFAULT = "https://script.google.com/macros/s/AKfycbynvQvpxCZFPE7eB7UNeJKA-V93Rn-eUVv2ldOAiVE0QPLRRRNHV13ZNGutJNjtvoXWAw/exec"; 
+const SHEET_URL_DEFAULT = "https://script.google.com/macros/s/AKfycbynvQvpxCZFPE7eB7UNeJKA-V93Rn-eUVv2ldOAiVE0QPLRRRNHV13ZNGutJNjtvoXWAw/exec";   // 跟 index.html 一樣，貼上 Apps Script 網址，其他老師就不用自己貼
 /* ===================== */
-const QUESTIONS = [["q1","泡一碗泡麵"],["q2","算長方形的面積"],["q3","攝氏換華氏"],["q4","要不要帶雨傘"],["q5","及格了嗎"],["q6","搭電梯還是走樓梯"],["q7","奇數還是偶數"]];
+const QUESTIONS = [["q1", "刷牙"], ["q2", "泡一碗泡麵"], ["q3", "算長方形的面積"], ["q4", "要不要帶雨傘"], ["q5", "及格了嗎"], ["q6", "兩個長方形的面積總和"], ["q7", "規劃一日遊"], ["q8", "副程式裡面：安排交通"]];
 const MODES = ["看題畫圖","看圖答結果","排序方塊"];
 const $=s=>document.querySelector(s);
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));

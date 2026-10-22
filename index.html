@@ -11,7 +11,7 @@
   --bg:#1C1A17;--surface:#262320;--border:#3D3833;--border-strong:#57504A;
   --text:#F3EEE7;--text-2:#D9D0C5;--muted:#A89E92;--faint:#7A7066;
   --success:#8FBF8A;--success-soft:#B5D9B1;--warning:#E0B35C;--danger:#E07A6B;--danger-soft:#F0B3A9;--danger-bg:#3A2724;
-  --terminal:#9DBF9E;--terminal-bg:#27342A;--io:#E0B35C;--io-bg:#3A3122;--process:#8FA9C9;--process-bg:#232B36;--decision:#C49AB8;--decision-bg:#332733;--decision-soft:#DCC0D3;
+  --terminal:#9DBF9E;--terminal-bg:#27342A;--io:#E0B35C;--io-bg:#3A3122;--process:#8FA9C9;--process-bg:#232B36;--decision:#C49AB8;--decision-bg:#332733;--decision-soft:#DCC0D3;--sub:#D4A08A;--sub-bg:#3A2C26;--sub-soft:#E8C4B4;
   --arrow:#A89E92;--radius:8px;
 }
 *{box-sizing:border-box}
@@ -61,6 +61,7 @@ p{margin:0}
 .tag{font-size:12px;padding:1px 10px;border-radius:999px}
 .tag.seq{background:rgba(143,169,201,.18);color:#AFC3DB}
 .tag.dec{background:rgba(196,154,184,.18);color:var(--decision-soft)}
+.tag.sub{background:rgba(212,160,138,.18);color:var(--sub-soft)}
 .tag.ok{background:rgba(143,191,138,.18);color:var(--success-soft)}
 .legend{display:flex;align-items:center;gap:22px;flex-wrap:wrap;padding:14px 20px}
 .legend .it{display:flex;align-items:center;gap:10px;font-size:14px}
@@ -69,6 +70,7 @@ p{margin:0}
 .sw.io{border-color:var(--io);background:var(--io-bg);transform:skewX(-14deg)}
 .sw.process{border-radius:4px;border-color:var(--process);background:var(--process-bg)}
 .sw.decision{width:22px;height:22px;border-color:var(--decision);background:var(--decision-bg);transform:rotate(45deg) scale(.8);margin:0 6px}
+.sw.subroutine{border-radius:3px;border-color:var(--sub);background:var(--sub-bg);border-left:6px double var(--sub);border-right:6px double var(--sub)}
 .who{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .who input{width:110px}
 .who input.name{width:150px}
@@ -96,7 +98,7 @@ p{margin:0}
 .scard{padding:9px 14px;border-radius:10px;background:var(--border);border:1px solid var(--border-strong);font-size:15px;cursor:grab;user-select:none;touch-action:none}
 .scard.sel{outline:2px solid var(--primary);outline-offset:2px}
 .scard.dragging{opacity:.4}
-.cols{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
+.cols{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}
 .col{border-radius:14px;border:2px dashed;padding:14px;min-height:260px;display:flex;flex-direction:column;gap:10px;cursor:pointer}
 .col.over{background:rgba(255,255,255,.04)}
 .col .h{display:flex;flex-direction:column;align-items:center;gap:6px;padding-bottom:10px;border-bottom:1px solid var(--border)}
@@ -108,6 +110,7 @@ p{margin:0}
 .col.io{border-color:rgba(224,179,92,.5);background:rgba(224,179,92,.05)}
 .col.process{border-color:rgba(143,169,201,.5);background:rgba(143,169,201,.05)}
 .col.decision{border-color:rgba(196,154,184,.5);background:rgba(196,154,184,.05)}
+.col.subroutine{border-color:rgba(212,160,138,.5);background:rgba(212,160,138,.05)}
 .col.none{border-color:var(--border-strong);background:rgba(168,158,146,.04)}
 .placed{font-size:14px;padding:8px 10px;text-align:center;border:2px solid;cursor:grab;user-select:none;touch-action:none}
 .placed.terminal{border-radius:999px;border-color:var(--terminal);background:var(--terminal-bg)}
@@ -115,6 +118,7 @@ p{margin:0}
 .placed.io span{display:inline-block;transform:skewX(10deg)}
 .placed.process{border-radius:8px;border-color:var(--process);background:var(--process-bg)}
 .placed.decision{border-radius:8px;border-color:var(--decision);background:var(--decision-bg)}
+.placed.subroutine{border-radius:4px;border-color:var(--sub);background:var(--sub-bg);border-left:7px double var(--sub);border-right:7px double var(--sub)}
 .placed.none{border-radius:8px;border-color:var(--border-strong);background:var(--surface);color:var(--muted);text-decoration:line-through}
 .placed.bad{border-color:var(--danger) !important;background:var(--danger-bg) !important}
 .placed.ok{border-color:var(--success) !important}
@@ -130,6 +134,7 @@ p{margin:0}
 .tnode.io span{display:inline-block;transform:skewX(10deg)}
 .tnode.process{border-radius:8px;border-color:var(--process);background:var(--process-bg)}
 .tnode.decision{border-radius:8px;border-color:var(--decision);background:var(--decision-bg)}
+.tnode.subroutine{border-radius:4px;border-color:var(--sub);background:var(--sub-bg);border-left:7px double var(--sub);border-right:7px double var(--sub)}
 .tips{margin-top:auto;font-size:12px;color:var(--muted);display:flex;flex-direction:column;gap:6px;line-height:1.5}
 .tips b{color:var(--text-2)}
 .cv{flex:1;position:relative;min-width:0;background-color:var(--bg);background-image:radial-gradient(var(--border) 1px,transparent 1px);background-size:24px 24px;overflow:hidden}
@@ -160,7 +165,7 @@ p{margin:0}
 .help .s{background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:6px;font-size:14px}
 .help .s b{font-size:15px}
 .help .n{width:26px;height:26px;border-radius:50%;background:var(--primary);color:var(--on-primary);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px}
-.tracebox{position:relative;border-radius:10px;background-color:var(--bg);background-image:radial-gradient(var(--border) 1px,transparent 1px);background-size:24px 24px;overflow:auto;height:520px}
+.tracebox{position:relative;border-radius:10px;background-color:var(--bg);background-image:radial-gradient(var(--border) 1px,transparent 1px);background-size:24px 24px;overflow:auto;height:600px}
 .tracebox svg{display:block}
 .ans{display:flex;flex-direction:column;gap:10px}
 .ans button{text-align:left;padding:12px 16px;border-radius:12px;font-size:16px;display:flex;align-items:center;gap:14px;background:var(--surface);color:var(--text)}
@@ -187,107 +192,781 @@ code{background:var(--bg);border:1px solid var(--border);border-radius:6px;paddi
 
 <script id="bank" type="application/json">
 {
-  "symbols": [
-    { "type": "terminal", "zh": "開始／結束", "en": "Start / End", "shape": "橢圓", "hint": "流程只有一個開始、一個結束" },
-    { "type": "io", "zh": "輸入／輸出", "en": "Input / Output", "shape": "平行四邊形", "hint": "把東西交給電腦，或電腦把結果給你看" },
-    { "type": "process", "zh": "處理", "en": "Process", "shape": "矩形", "hint": "做一件事、算一個數" },
-    { "type": "decision", "zh": "判斷", "en": "Decision", "shape": "菱形", "hint": "問一個是非題，一定有「是」和「否」兩條路，只會走其中一條" }
-  ],
-  "questions": [
-    { "id": "q1", "type": "sequence", "title": "泡一碗泡麵",
-      "story": "小安肚子餓了，想泡一碗泡麵。請把泡麵的步驟畫成流程圖。",
-      "analysis": { "start": "開始", "end": "結束", "hasDecision": false, "whyNoDecision": "每一步都一定要做，沒有要選的地方" },
-      "nodes": [
-        { "id": "n1", "symbol": "terminal", "text": "開始" },
-        { "id": "n2", "symbol": "process", "text": "燒一壺熱水" },
-        { "id": "n3", "symbol": "process", "text": "把麵和調味包放進碗裡" },
-        { "id": "n4", "symbol": "process", "text": "倒入熱水、蓋上蓋子" },
-        { "id": "n5", "symbol": "process", "text": "等三分鐘" },
-        { "id": "n6", "symbol": "io", "text": "顯示「可以吃了！」" },
-        { "id": "n7", "symbol": "terminal", "text": "結束" } ],
-      "edges": [ ["n1","n2"], ["n2","n3"], ["n3","n4"], ["n4","n5"], ["n5","n6"], ["n6","n7"] ],
-      "distractors": [ "把麵放進冰箱", "等三十分鐘" ],
-      "trace": { "question": "照這張流程圖做，倒入熱水之後的下一步是什麼？", "options": ["燒一壺熱水", "等三分鐘", "把麵放進碗裡", "顯示「可以吃了！」"], "answer": 1 } },
-    { "id": "q2", "type": "sequence", "title": "算長方形的面積",
-      "story": "寫一個小程式：使用者輸入長和寬，程式算出長方形的面積並顯示出來。",
-      "analysis": { "start": "開始", "end": "結束", "hasDecision": false, "whyNoDecision": "不管輸入什麼數字，算法都一樣" },
-      "nodes": [
-        { "id": "n1", "symbol": "terminal", "text": "開始" },
-        { "id": "n2", "symbol": "io", "text": "輸入長" },
-        { "id": "n3", "symbol": "io", "text": "輸入寬" },
-        { "id": "n4", "symbol": "process", "text": "面積 ＝ 長 × 寬" },
-        { "id": "n5", "symbol": "io", "text": "輸出面積" },
-        { "id": "n6", "symbol": "terminal", "text": "結束" } ],
-      "edges": [ ["n1","n2"], ["n2","n3"], ["n3","n4"], ["n4","n5"], ["n5","n6"] ],
-      "distractors": [ "面積 ＝ 長 ＋ 寬", "輸入高" ],
-      "trace": { "question": "輸入長 ＝ 5、寬 ＝ 3，這個程式最後會輸出什麼？", "options": ["8", "15", "53", "什麼都不會輸出"], "answer": 1 } },
-    { "id": "q3", "type": "sequence", "title": "攝氏換華氏",
-      "story": "寫一個小程式：輸入攝氏溫度，算出華氏溫度（華氏 ＝ 攝氏 × 1.8 ＋ 32）並顯示。",
-      "analysis": { "start": "開始", "end": "結束", "hasDecision": false, "whyNoDecision": "只是算一個公式，沒有要選" },
-      "nodes": [
-        { "id": "n1", "symbol": "terminal", "text": "開始" },
-        { "id": "n2", "symbol": "io", "text": "輸入攝氏溫度" },
-        { "id": "n3", "symbol": "process", "text": "華氏 ＝ 攝氏 × 1.8 ＋ 32" },
-        { "id": "n4", "symbol": "io", "text": "輸出華氏溫度" },
-        { "id": "n5", "symbol": "terminal", "text": "結束" } ],
-      "edges": [ ["n1","n2"], ["n2","n3"], ["n3","n4"], ["n4","n5"] ],
-      "distractors": [ "輸入華氏溫度", "華氏 ＝ 攝氏 ＋ 1.8" ],
-      "trace": { "question": "輸入攝氏 100 度，會輸出多少？", "options": ["132", "180", "212", "100"], "answer": 2 } },
-    { "id": "q4", "type": "decision", "title": "要不要帶雨傘",
-      "story": "小美出門前看一下窗外：如果在下雨就帶雨傘，沒下雨就不帶，然後出門。",
-      "analysis": { "start": "開始", "end": "結束", "hasDecision": true, "decisionText": "外面在下雨嗎？", "yesPath": "帶雨傘", "noPath": "不帶雨傘" },
-      "nodes": [
-        { "id": "n1", "symbol": "terminal", "text": "開始" },
-        { "id": "n2", "symbol": "process", "text": "看一下窗外" },
-        { "id": "n3", "symbol": "decision", "text": "外面在下雨嗎？" },
-        { "id": "n4", "symbol": "process", "text": "帶雨傘" },
-        { "id": "n5", "symbol": "process", "text": "不帶雨傘" },
-        { "id": "n6", "symbol": "process", "text": "出門" },
-        { "id": "n7", "symbol": "terminal", "text": "結束" } ],
-      "edges": [ ["n1","n2"], ["n2","n3"], ["n3","n4","是"], ["n3","n5","否"], ["n4","n6"], ["n5","n6"], ["n6","n7"] ],
-      "distractors": [ "帶游泳圈", "今天星期幾？" ],
-      "trace": { "question": "今天沒有下雨，小美會走哪一條路？", "options": ["帶雨傘 → 出門", "不帶雨傘 → 出門", "帶雨傘 → 不帶雨傘 → 出門", "直接結束"], "answer": 1 } },
-    { "id": "q5", "type": "decision", "title": "及格了嗎",
-      "story": "輸入一個分數，如果大於或等於 60 分就顯示「及格」，不然就顯示「不及格」。",
-      "analysis": { "start": "開始", "end": "結束", "hasDecision": true, "decisionText": "分數 ≥ 60？", "yesPath": "輸出「及格」", "noPath": "輸出「不及格」" },
-      "nodes": [
-        { "id": "n1", "symbol": "terminal", "text": "開始" },
-        { "id": "n2", "symbol": "io", "text": "輸入分數" },
-        { "id": "n3", "symbol": "decision", "text": "分數 ≥ 60？" },
-        { "id": "n4", "symbol": "io", "text": "輸出「及格」" },
-        { "id": "n5", "symbol": "io", "text": "輸出「不及格」" },
-        { "id": "n6", "symbol": "terminal", "text": "結束" } ],
-      "edges": [ ["n1","n2"], ["n2","n3"], ["n3","n4","是"], ["n3","n5","否"], ["n4","n6"], ["n5","n6"] ],
-      "distractors": [ "分數 ＋ 60", "輸入姓名" ],
-      "trace": { "question": "輸入 59 分，會輸出什麼？", "options": ["及格", "不及格", "59", "兩個都會輸出"], "answer": 1 } },
-    { "id": "q6", "type": "decision", "title": "搭電梯還是走樓梯",
-      "story": "小宇到學校，看教室在幾樓：超過 3 樓就搭電梯，不然就走樓梯，然後到教室。",
-      "analysis": { "start": "開始", "end": "結束", "hasDecision": true, "decisionText": "樓層 > 3？", "yesPath": "搭電梯", "noPath": "走樓梯" },
-      "nodes": [
-        { "id": "n1", "symbol": "terminal", "text": "開始" },
-        { "id": "n2", "symbol": "io", "text": "輸入教室樓層" },
-        { "id": "n3", "symbol": "decision", "text": "樓層 > 3？" },
-        { "id": "n4", "symbol": "process", "text": "搭電梯" },
-        { "id": "n5", "symbol": "process", "text": "走樓梯" },
-        { "id": "n6", "symbol": "process", "text": "到教室" },
-        { "id": "n7", "symbol": "terminal", "text": "結束" } ],
-      "edges": [ ["n1","n2"], ["n2","n3"], ["n3","n4","是"], ["n3","n5","否"], ["n4","n6"], ["n5","n6"], ["n6","n7"] ],
-      "distractors": [ "搭公車", "樓層 ＋ 3" ],
-      "trace": { "question": "教室在 3 樓，小宇會怎麼走？", "options": ["搭電梯", "走樓梯", "搭電梯再走樓梯", "不用去教室"], "answer": 1 } },
-    { "id": "q7", "type": "decision", "title": "奇數還是偶數",
-      "story": "輸入一個整數，如果除以 2 的餘數是 0 就顯示「偶數」，不然就顯示「奇數」。",
-      "analysis": { "start": "開始", "end": "結束", "hasDecision": true, "decisionText": "除以 2 餘數是 0？", "yesPath": "輸出「偶數」", "noPath": "輸出「奇數」" },
-      "nodes": [
-        { "id": "n1", "symbol": "terminal", "text": "開始" },
-        { "id": "n2", "symbol": "io", "text": "輸入一個整數" },
-        { "id": "n3", "symbol": "decision", "text": "除以 2 餘數是 0？" },
-        { "id": "n4", "symbol": "io", "text": "輸出「偶數」" },
-        { "id": "n5", "symbol": "io", "text": "輸出「奇數」" },
-        { "id": "n6", "symbol": "terminal", "text": "結束" } ],
-      "edges": [ ["n1","n2"], ["n2","n3"], ["n3","n4","是"], ["n3","n5","否"], ["n4","n6"], ["n5","n6"] ],
-      "distractors": [ "乘以 2", "輸出「質數」" ],
-      "trace": { "question": "輸入 7，會輸出什麼？", "options": ["偶數", "奇數", "3.5", "0"], "answer": 1 } }
-  ]
+ "symbols": [
+  {
+   "type": "terminal",
+   "zh": "開始／結束",
+   "en": "Start / End",
+   "shape": "橢圓",
+   "hint": "流程只有一個開始、一個結束；副程式的結束叫「返回」"
+  },
+  {
+   "type": "io",
+   "zh": "輸入／輸出",
+   "en": "Input / Output",
+   "shape": "平行四邊形",
+   "hint": "把東西交給電腦，或電腦把結果給你看"
+  },
+  {
+   "type": "process",
+   "zh": "處理",
+   "en": "Process",
+   "shape": "矩形",
+   "hint": "做一件事、算一個數"
+  },
+  {
+   "type": "decision",
+   "zh": "判斷",
+   "en": "Decision",
+   "shape": "菱形",
+   "hint": "問一個是非題，一定有「是」和「否」兩條路，只會走其中一條"
+  },
+  {
+   "type": "subroutine",
+   "zh": "副程式",
+   "en": "Subroutine",
+   "shape": "雙線矩形",
+   "hint": "把一組複雜或重複的步驟包起來；做完會回到主程式，接著做下一步"
+  }
+ ],
+ "questions": [
+  {
+   "id": "q1",
+   "type": "sequence",
+   "title": "刷牙",
+   "story": "小花早上起床要刷牙。請把刷牙的步驟畫成流程圖。",
+   "analysis": {
+    "start": "開始",
+    "end": "結束",
+    "hasDecision": false,
+    "whyNoDecision": "每一步都一定要做，沒有要選的地方"
+   },
+   "nodes": [
+    {
+     "id": "n1",
+     "symbol": "terminal",
+     "text": "開始"
+    },
+    {
+     "id": "n2",
+     "symbol": "process",
+     "text": "擠牙膏"
+    },
+    {
+     "id": "n3",
+     "symbol": "process",
+     "text": "刷牙"
+    },
+    {
+     "id": "n4",
+     "symbol": "process",
+     "text": "漱口"
+    },
+    {
+     "id": "n5",
+     "symbol": "terminal",
+     "text": "結束"
+    }
+   ],
+   "edges": [
+    [
+     "n1",
+     "n2"
+    ],
+    [
+     "n2",
+     "n3"
+    ],
+    [
+     "n3",
+     "n4"
+    ],
+    [
+     "n4",
+     "n5"
+    ]
+   ],
+   "distractors": [
+    "吃早餐",
+    "洗頭"
+   ],
+   "trace": {
+    "question": "照這張流程圖做，刷牙之後的下一步是什麼？",
+    "options": [
+     "擠牙膏",
+     "漱口",
+     "吃早餐",
+     "結束"
+    ],
+    "answer": 1
+   }
+  },
+  {
+   "id": "q2",
+   "type": "sequence",
+   "title": "泡一碗泡麵",
+   "story": "小安肚子餓了，想泡一碗泡麵。請把泡麵的步驟畫成流程圖。",
+   "analysis": {
+    "start": "開始",
+    "end": "結束",
+    "hasDecision": false,
+    "whyNoDecision": "每一步都一定要做，沒有要選的地方"
+   },
+   "nodes": [
+    {
+     "id": "n1",
+     "symbol": "terminal",
+     "text": "開始"
+    },
+    {
+     "id": "n2",
+     "symbol": "process",
+     "text": "燒一壺熱水"
+    },
+    {
+     "id": "n3",
+     "symbol": "process",
+     "text": "把麵和調味包放進碗裡"
+    },
+    {
+     "id": "n4",
+     "symbol": "process",
+     "text": "倒入熱水、蓋上蓋子"
+    },
+    {
+     "id": "n5",
+     "symbol": "process",
+     "text": "等三分鐘"
+    },
+    {
+     "id": "n6",
+     "symbol": "io",
+     "text": "顯示「可以吃了！」"
+    },
+    {
+     "id": "n7",
+     "symbol": "terminal",
+     "text": "結束"
+    }
+   ],
+   "edges": [
+    [
+     "n1",
+     "n2"
+    ],
+    [
+     "n2",
+     "n3"
+    ],
+    [
+     "n3",
+     "n4"
+    ],
+    [
+     "n4",
+     "n5"
+    ],
+    [
+     "n5",
+     "n6"
+    ],
+    [
+     "n6",
+     "n7"
+    ]
+   ],
+   "distractors": [
+    "把麵放進冰箱",
+    "等三十分鐘"
+   ],
+   "trace": {
+    "question": "照這張流程圖做，倒入熱水之後的下一步是什麼？",
+    "options": [
+     "燒一壺熱水",
+     "等三分鐘",
+     "把麵放進碗裡",
+     "顯示「可以吃了！」"
+    ],
+    "answer": 1
+   }
+  },
+  {
+   "id": "q3",
+   "type": "sequence",
+   "title": "算長方形的面積",
+   "story": "寫一個小程式：使用者輸入長和寬，程式算出長方形的面積並顯示出來。",
+   "analysis": {
+    "start": "開始",
+    "end": "結束",
+    "hasDecision": false,
+    "whyNoDecision": "不管輸入什麼數字，算法都一樣"
+   },
+   "nodes": [
+    {
+     "id": "n1",
+     "symbol": "terminal",
+     "text": "開始"
+    },
+    {
+     "id": "n2",
+     "symbol": "io",
+     "text": "輸入長"
+    },
+    {
+     "id": "n3",
+     "symbol": "io",
+     "text": "輸入寬"
+    },
+    {
+     "id": "n4",
+     "symbol": "process",
+     "text": "面積 ＝ 長 × 寬"
+    },
+    {
+     "id": "n5",
+     "symbol": "io",
+     "text": "輸出面積"
+    },
+    {
+     "id": "n6",
+     "symbol": "terminal",
+     "text": "結束"
+    }
+   ],
+   "edges": [
+    [
+     "n1",
+     "n2"
+    ],
+    [
+     "n2",
+     "n3"
+    ],
+    [
+     "n3",
+     "n4"
+    ],
+    [
+     "n4",
+     "n5"
+    ],
+    [
+     "n5",
+     "n6"
+    ]
+   ],
+   "distractors": [
+    "面積 ＝ 長 ＋ 寬",
+    "輸入高"
+   ],
+   "trace": {
+    "question": "輸入長 ＝ 5、寬 ＝ 3，這個程式最後會輸出什麼？",
+    "options": [
+     "8",
+     "15",
+     "53",
+     "什麼都不會輸出"
+    ],
+    "answer": 1
+   }
+  },
+  {
+   "id": "q4",
+   "type": "decision",
+   "title": "要不要帶雨傘",
+   "story": "小美出門前看一下窗外：如果在下雨就帶雨傘，沒下雨就不帶，然後出門。",
+   "analysis": {
+    "start": "開始",
+    "end": "結束",
+    "hasDecision": true,
+    "decisionText": "外面在下雨嗎？",
+    "yesPath": "帶雨傘",
+    "noPath": "不帶雨傘"
+   },
+   "nodes": [
+    {
+     "id": "n1",
+     "symbol": "terminal",
+     "text": "開始"
+    },
+    {
+     "id": "n2",
+     "symbol": "process",
+     "text": "看一下窗外"
+    },
+    {
+     "id": "n3",
+     "symbol": "decision",
+     "text": "外面在下雨嗎？"
+    },
+    {
+     "id": "n4",
+     "symbol": "process",
+     "text": "帶雨傘"
+    },
+    {
+     "id": "n5",
+     "symbol": "process",
+     "text": "不帶雨傘"
+    },
+    {
+     "id": "n6",
+     "symbol": "process",
+     "text": "出門"
+    },
+    {
+     "id": "n7",
+     "symbol": "terminal",
+     "text": "結束"
+    }
+   ],
+   "edges": [
+    [
+     "n1",
+     "n2"
+    ],
+    [
+     "n2",
+     "n3"
+    ],
+    [
+     "n3",
+     "n4",
+     "是"
+    ],
+    [
+     "n3",
+     "n5",
+     "否"
+    ],
+    [
+     "n4",
+     "n6"
+    ],
+    [
+     "n5",
+     "n6"
+    ],
+    [
+     "n6",
+     "n7"
+    ]
+   ],
+   "distractors": [
+    "帶游泳圈",
+    "今天星期幾？"
+   ],
+   "trace": {
+    "question": "今天沒有下雨，小美會走哪一條路？",
+    "options": [
+     "帶雨傘 → 出門",
+     "不帶雨傘 → 出門",
+     "帶雨傘 → 不帶雨傘 → 出門",
+     "直接結束"
+    ],
+    "answer": 1
+   }
+  },
+  {
+   "id": "q5",
+   "type": "decision",
+   "title": "及格了嗎",
+   "story": "輸入一個分數，如果大於或等於 60 分就顯示「及格」，不然就顯示「不及格」。",
+   "analysis": {
+    "start": "開始",
+    "end": "結束",
+    "hasDecision": true,
+    "decisionText": "分數 ≥ 60？",
+    "yesPath": "輸出「及格」",
+    "noPath": "輸出「不及格」"
+   },
+   "nodes": [
+    {
+     "id": "n1",
+     "symbol": "terminal",
+     "text": "開始"
+    },
+    {
+     "id": "n2",
+     "symbol": "io",
+     "text": "輸入分數"
+    },
+    {
+     "id": "n3",
+     "symbol": "decision",
+     "text": "分數 ≥ 60？"
+    },
+    {
+     "id": "n4",
+     "symbol": "io",
+     "text": "輸出「及格」"
+    },
+    {
+     "id": "n5",
+     "symbol": "io",
+     "text": "輸出「不及格」"
+    },
+    {
+     "id": "n6",
+     "symbol": "terminal",
+     "text": "結束"
+    }
+   ],
+   "edges": [
+    [
+     "n1",
+     "n2"
+    ],
+    [
+     "n2",
+     "n3"
+    ],
+    [
+     "n3",
+     "n4",
+     "是"
+    ],
+    [
+     "n3",
+     "n5",
+     "否"
+    ],
+    [
+     "n4",
+     "n6"
+    ],
+    [
+     "n5",
+     "n6"
+    ]
+   ],
+   "distractors": [
+    "分數 ＋ 60",
+    "輸入姓名"
+   ],
+   "trace": {
+    "question": "輸入 59 分，會輸出什麼？",
+    "options": [
+     "及格",
+     "不及格",
+     "59",
+     "兩個都會輸出"
+    ],
+    "answer": 1
+   }
+  },
+  {
+   "id": "q6",
+   "type": "subroutine",
+   "title": "兩個長方形的面積總和",
+   "story": "輸入兩個長方形的長和寬，算出兩個面積加起來是多少。「算面積」這件事要做兩次，所以把它包成副程式，重複叫它就好。",
+   "analysis": {
+    "start": "開始",
+    "end": "結束",
+    "hasDecision": false,
+    "whyNoDecision": "兩個長方形都一定要算，沒有要選的地方"
+   },
+   "nodes": [
+    {
+     "id": "n1",
+     "symbol": "terminal",
+     "text": "開始"
+    },
+    {
+     "id": "n2",
+     "symbol": "io",
+     "text": "輸入第一個的長和寬"
+    },
+    {
+     "id": "n3",
+     "symbol": "subroutine",
+     "text": "算面積"
+    },
+    {
+     "id": "n4",
+     "symbol": "io",
+     "text": "輸入第二個的長和寬"
+    },
+    {
+     "id": "n5",
+     "symbol": "subroutine",
+     "text": "算面積"
+    },
+    {
+     "id": "n6",
+     "symbol": "process",
+     "text": "總和 ＝ 面積一 ＋ 面積二"
+    },
+    {
+     "id": "n7",
+     "symbol": "io",
+     "text": "輸出總和"
+    },
+    {
+     "id": "n8",
+     "symbol": "terminal",
+     "text": "結束"
+    }
+   ],
+   "edges": [
+    [
+     "n1",
+     "n2"
+    ],
+    [
+     "n2",
+     "n3"
+    ],
+    [
+     "n3",
+     "n4"
+    ],
+    [
+     "n4",
+     "n5"
+    ],
+    [
+     "n5",
+     "n6"
+    ],
+    [
+     "n6",
+     "n7"
+    ],
+    [
+     "n7",
+     "n8"
+    ]
+   ],
+   "distractors": [
+    "輸入三角形的底",
+    "算周長"
+   ],
+   "trace": {
+    "question": "為什麼「算面積」要畫成副程式（雙線矩形）？",
+    "options": [
+     "因為它是輸入資料",
+     "因為同樣的步驟要做兩次，包起來重複用",
+     "因為它是一個判斷",
+     "因為它是最後一步"
+    ],
+    "answer": 1
+   }
+  },
+  {
+   "id": "q7",
+   "type": "subroutine",
+   "title": "規劃一日遊",
+   "story": "幫全家規劃一日遊：輸入出發地、目的地和預算，先安排交通、再安排景點、然後估算花費。如果花費超過預算，就顯示「要調整行程」，不然顯示「行程完成」。安排交通、安排景點、估算花費各自有很多步驟，都包成副程式。",
+   "analysis": {
+    "start": "開始",
+    "end": "結束",
+    "hasDecision": true,
+    "decisionText": "花費 > 預算？",
+    "yesPath": "輸出「要調整行程」",
+    "noPath": "輸出「行程完成」"
+   },
+   "nodes": [
+    {
+     "id": "n1",
+     "symbol": "terminal",
+     "text": "開始"
+    },
+    {
+     "id": "n2",
+     "symbol": "io",
+     "text": "輸入出發地、目的地、預算"
+    },
+    {
+     "id": "n3",
+     "symbol": "subroutine",
+     "text": "安排交通"
+    },
+    {
+     "id": "n4",
+     "symbol": "subroutine",
+     "text": "安排景點"
+    },
+    {
+     "id": "n5",
+     "symbol": "subroutine",
+     "text": "估算花費"
+    },
+    {
+     "id": "n6",
+     "symbol": "decision",
+     "text": "花費 > 預算？"
+    },
+    {
+     "id": "n7",
+     "symbol": "io",
+     "text": "輸出「要調整行程」"
+    },
+    {
+     "id": "n8",
+     "symbol": "io",
+     "text": "輸出「行程完成」"
+    },
+    {
+     "id": "n9",
+     "symbol": "terminal",
+     "text": "結束"
+    }
+   ],
+   "edges": [
+    [
+     "n1",
+     "n2"
+    ],
+    [
+     "n2",
+     "n3"
+    ],
+    [
+     "n3",
+     "n4"
+    ],
+    [
+     "n4",
+     "n5"
+    ],
+    [
+     "n5",
+     "n6"
+    ],
+    [
+     "n6",
+     "n7",
+     "是"
+    ],
+    [
+     "n6",
+     "n8",
+     "否"
+    ],
+    [
+     "n7",
+     "n9"
+    ],
+    [
+     "n8",
+     "n9"
+    ]
+   ],
+   "distractors": [
+    "買紀念品",
+    "預算 ＋ 花費"
+   ],
+   "trace": {
+    "question": "「安排交通」這個副程式做完之後，程式接下來做什麼？",
+    "options": [
+     "回到開始重新來",
+     "安排景點",
+     "直接結束",
+     "估算花費"
+    ],
+    "answer": 1
+   }
+  },
+  {
+   "id": "q8",
+   "type": "subroutine",
+   "title": "副程式裡面：安排交通",
+   "story": "打開第 7 題的「安排交通」副程式看看裡面：先算出發地到目的地的距離，如果超過 100 公里就選高鐵，不然就選公車，接著查時刻表，最後返回主程式。",
+   "analysis": {
+    "start": "安排交通 開始",
+    "end": "返回主程式",
+    "endHint": "副程式做完不是「結束」，而是回到主程式繼續下一步。",
+    "hasDecision": true,
+    "decisionText": "距離 > 100 公里？",
+    "yesPath": "選高鐵",
+    "noPath": "選公車"
+   },
+   "nodes": [
+    {
+     "id": "n1",
+     "symbol": "terminal",
+     "text": "安排交通 開始"
+    },
+    {
+     "id": "n2",
+     "symbol": "process",
+     "text": "算出距離"
+    },
+    {
+     "id": "n3",
+     "symbol": "decision",
+     "text": "距離 > 100 公里？"
+    },
+    {
+     "id": "n4",
+     "symbol": "process",
+     "text": "選高鐵"
+    },
+    {
+     "id": "n5",
+     "symbol": "process",
+     "text": "選公車"
+    },
+    {
+     "id": "n6",
+     "symbol": "process",
+     "text": "查時刻表"
+    },
+    {
+     "id": "n7",
+     "symbol": "terminal",
+     "text": "返回主程式"
+    }
+   ],
+   "edges": [
+    [
+     "n1",
+     "n2"
+    ],
+    [
+     "n2",
+     "n3"
+    ],
+    [
+     "n3",
+     "n4",
+     "是"
+    ],
+    [
+     "n3",
+     "n5",
+     "否"
+    ],
+    [
+     "n4",
+     "n6"
+    ],
+    [
+     "n5",
+     "n6"
+    ],
+    [
+     "n6",
+     "n7"
+    ]
+   ],
+   "distractors": [
+    "結束",
+    "輸出「行程完成」"
+   ],
+   "trace": {
+    "question": "距離是 60 公里，這個副程式會怎麼走？",
+    "options": [
+     "選高鐵 → 查時刻表 → 返回主程式",
+     "選公車 → 查時刻表 → 返回主程式",
+     "選公車 → 結束",
+     "選高鐵 → 選公車 → 返回主程式"
+    ],
+    "answer": 1
+   }
+  }
+ ]
 }
 </script>
 
@@ -301,7 +980,7 @@ const BANK = JSON.parse(document.getElementById('bank').textContent);
 const SYM = Object.fromEntries(BANK.symbols.map(s=>[s.type,s]));
 const COLORS = {
   terminal:{stroke:'#9DBF9E',fill:'#27342A'}, io:{stroke:'#E0B35C',fill:'#3A3122'},
-  process:{stroke:'#8FA9C9',fill:'#232B36'}, decision:{stroke:'#C49AB8',fill:'#332733'},
+  process:{stroke:'#8FA9C9',fill:'#232B36'}, decision:{stroke:'#C49AB8',fill:'#332733'}, subroutine:{stroke:'#D4A08A',fill:'#3A2C26'},
 };
 const MODES = {
   draw:{name:'看題畫圖',desc:'讀題目，自己把流程圖畫出來',color:'process'},
@@ -326,6 +1005,7 @@ function nodeSize(sym,text){
   if(sym==='terminal') return {w:Math.max(140,w+48),h:48};
   if(sym==='io') return {w:Math.max(160,w+64),h:48};
   if(sym==='decision') return {w:Math.max(190,w+90),h:92};
+  if(sym==='subroutine') return {w:Math.max(170,w+70),h:48};
   return {w:Math.max(160,w+44),h:48};
 }
 
@@ -372,9 +1052,10 @@ function iconSvg(mode){
 /* ===================== 首頁 ===================== */
 function viewHome(){
   const m=S.mode;
+  const TYPE_ZH={sequence:'直敘',decision:'選擇',subroutine:'副程式'}; const TYPE_CLS={sequence:'seq',decision:'dec',subroutine:'sub'};
   const qlist = m==='free' ? '' : `<div style="display:flex;flex-direction:column;gap:12px">
-    <div style="display:flex;align-items:baseline;gap:12px"><h2>選一題</h2><span class="small muted">共 ${BANK.questions.length} 題 · 直敘 ${BANK.questions.filter(q=>q.type==='sequence').length} 題、選擇 ${BANK.questions.filter(q=>q.type==='decision').length} 題</span></div>
-    <div class="grid4">${BANK.questions.map((q,i)=>`<button class="qcard" data-q="${i}"><span class="t">${i+1} ${esc(q.title)}</span><span style="display:flex;gap:6px"><span class="tag ${q.type==='sequence'?'seq':'dec'}">${q.type==='sequence'?'直敘':'選擇'}</span>${S.done[m+':'+q.id]?'<span class="tag ok">已過關</span>':''}</span></button>`).join('')}
+    <div style="display:flex;align-items:baseline;gap:12px"><h2>選一題</h2><span class="small muted">共 ${BANK.questions.length} 題，由簡單到難 · ${Object.keys(TYPE_ZH).map(t=>TYPE_ZH[t]+' '+BANK.questions.filter(q=>q.type===t).length+' 題').join('、')}</span></div>
+    <div class="grid4">${BANK.questions.map((q,i)=>`<button class="qcard" data-q="${i}"><span class="t">${i+1} ${esc(q.title)}</span><span style="display:flex;gap:6px"><span class="tag ${TYPE_CLS[q.type]||'seq'}">${TYPE_ZH[q.type]||q.type}</span>${S.done[m+':'+q.id]?'<span class="tag ok">已過關</span>':''}</span></button>`).join('')}
     </div></div>`;
   const sheetOn = !!S.sheetUrl;
   return topbar('<span class="brand">流程圖練習器</span>', `<span class="status ${sheetOn?'on':''}"><i></i>${sheetOn?'已連線到老師的試算表':'尚未連線試算表'}</span><button class="ghost sm" data-act="help">怎麼操作？</button>${location.hash==="#teacher"?'<button class="ghost sm" data-act="settings">老師設定</button>':''}`)+
@@ -386,7 +1067,7 @@ function viewHome(){
     <div class="grid4">${Object.entries(MODES).map(([k,v])=>`<button class="modecard ${k===m?'sel':''}" data-mode="${k}"><span class="ic" style="background:${COLORS[v.color].fill}">${iconSvg(k)}</span><span class="t">${v.name}</span><span class="d">${v.desc}</span></button>`).join('')}</div>
     ${qlist}
     ${m==='free'?'<div class="actions" style="justify-content:flex-start"><button class="primary" data-act="free">打開自由畫布</button></div>':''}
-    <div class="card legend"><span style="font-size:14px;font-weight:700;color:var(--muted)">四種符號</span>
+    <div class="card legend"><span style="font-size:14px;font-weight:700;color:var(--muted)">符號</span>
       ${BANK.symbols.map(s=>`<span class="it"><span class="sw ${s.type}"></span>${esc(s.zh)} <span class="muted">${esc(s.en)}</span></span>`).join('')}</div>
   </div></div>`;
 }
@@ -404,13 +1085,13 @@ function viewDraw(){
       <p class="muted">讀完想一想：這件事從哪裡開始、到哪裡結束？中間有沒有要做決定的地方？</p>
       <div class="actions"><button class="primary" id="s1next" data-act="next" disabled>我看懂了，下一步（3）</button></div></div>`;
   } else if(S.step===2){
-    const opts=q.nodes.map(n=>n.text);
+    const opts=[...new Set([...q.nodes.map(n=>n.text),...(q.distractors||[])])];
     const s=S.s2;
     const row=(key,title,idx)=>{
       const st = s.checked ? (s[key]===(key==='start'?q.analysis.start:q.analysis.end)?'ok':'bad') : '';
       return `<div class="card q ${st}"><div class="head"><span class="t">${idx} ${title}</span>${st==='ok'?'<span class="fb ok">✓ 答對了</span>':st==='bad'?'<span class="fb bad">再想想</span>':''}</div>
         <div class="opts">${opts.map(o=>`<button class="opt ${s[key]===o?(st||'sel'):''}" data-s2="${key}" data-v="${esc(o)}">${esc(o)}</button>`).join('')}</div>
-        ${st==='bad'?`<p class="fb bad">提示：流程圖的${key==='start'?'起點':'終點'}一定是哪一種符號？</p>`:''}</div>`;
+        ${st==='bad'?`<p class="fb bad">提示：${key==='end'&&q.analysis.endHint?esc(q.analysis.endHint):'流程圖的'+(key==='start'?'起點':'終點')+'一定是哪一種符號？'}</p>`:''}</div>`;
     };
     const hasSt = s.checked ? (s.has===q.analysis.hasDecision && (!q.analysis.hasDecision || s.which===q.analysis.decisionText)?'ok':'bad') : '';
     body=`<div class="wrap"><div class="two">
@@ -431,7 +1112,7 @@ function viewDraw(){
     const colHtml=(type,zh,en,hint)=>{
       const inCol=cards.filter(c=>c.col===type);
       const badHint = S.s3.hintFor===type;
-      return `<div class="col ${type}" data-col="${type}"><div class="h">${type==='none'?'<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#A89E92" stroke-width="1.8"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>':`<span class="sw ${type}" style="width:72px;height:32px;${type==='decision'?'width:30px;height:30px;':''}"></span>`}<span class="zh">${zh}</span><span class="en">${en}</span></div>
+      return `<div class="col ${type}" data-col="${type}"><div class="h">${type==='none'?'<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#A89E92" stroke-width="1.8"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>':`<span class="sw ${type}" style="width:72px;height:32px;${type==='decision'?'width:30px;height:30px;':''}${type==='subroutine'?'width:64px;':''}"></span>`}<span class="zh">${zh}</span><span class="en">${en}</span></div>
         ${inCol.map(c=>`<div class="placed ${type} ${c.state||''}" data-card="${c.id}"><span>${esc(c.text)}</span></div>`).join('')}
         <span class="hint ${badHint?'bad':''}">${hint}</span></div>`;
     };
@@ -444,6 +1125,7 @@ function viewDraw(){
         ${colHtml('io','輸入／輸出','Input / Output',SYM.io.hint)}
         ${colHtml('process','處理','Process',SYM.process.hint)}
         ${colHtml('decision','判斷','Decision',SYM.decision.hint)}
+        ${colHtml('subroutine','副程式','Subroutine',SYM.subroutine.hint)}
         ${colHtml('none','不需要','這題用不到','跟題目無關的句子放這裡')}
       </div>
       <div class="actions"><span class="small muted">${pool.length?'卡片都放完才能檢查':''}</span><button data-act="back">上一步</button>${S.s3.allOk?'<button class="primary" data-act="next">下一步</button>':`<button class="primary" data-act="check3" ${pool.length?'disabled':''}>檢查</button>`}</div>
@@ -519,6 +1201,7 @@ function shapePath(n){
   if(n.symbol==='terminal') return `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${h/2}"/>`;
   if(n.symbol==='process') return `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="8"/>`;
   if(n.symbol==='io'){const k=14;return `<polygon points="${x+k},${y} ${x+w},${y} ${x+w-k},${y+h} ${x},${y+h}"/>`}
+  if(n.symbol==='subroutine') return `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="4"/><line x1="${x+9}" y1="${y}" x2="${x+9}" y2="${y+h}"/><line x1="${x+w-9}" y1="${y}" x2="${x+w-9}" y2="${y+h}"/>`;
   return `<polygon points="${x+w/2},${y} ${x+w},${y+h/2} ${x+w/2},${y+h} ${x},${y+h/2}"/>`;
 }
 function nodeSvg(n,mark,interactive){
@@ -613,7 +1296,7 @@ function cvPointerDown(ev){
     ev.preventDefault();
     cvSnapshot(); hideRes(); c.graded=null;
     let n;
-    if(c.free){const sym=trayEl.dataset.tray;const text={terminal:'開始',io:'輸入',process:'處理',decision:'判斷？'}[sym];n={id:'f'+(c.seq++),symbol:sym,text,...nodeSize(sym,text)}}
+    if(c.free){const sym=trayEl.dataset.tray;const text={terminal:'開始',io:'輸入',process:'處理',decision:'判斷？',subroutine:'副程式'}[sym];n={id:'f'+(c.seq++),symbol:sym,text,...nodeSize(sym,text)}}
     else {const i=c.tray.findIndex(x=>x.id===trayEl.dataset.tray);n=c.tray.splice(i,1)[0];Object.assign(n,nodeSize(n.symbol,n.text))}
     const [px,py]=svgPoint(ev); n.x=px-n.w/2; n.y=py-n.h/2; c.nodes.push(n);
     drag={type:'node',id:n.id,dx:n.w/2,dy:n.h/2,moved:true}; c.selNode=n.id; c.selEdge=null; drawCanvas(); return;
@@ -704,14 +1387,23 @@ function grade(){
   const exp = q.edges.map(([a,b,l])=>({from:a,to:b,label:l||null}));
   const key=e=>e.from+'>'+e.to;
   const expMap=Object.fromEntries(exp.map(e=>[key(e),e]));
-  const stuMap=Object.fromEntries(c.edges.map(e=>[key(e),e]));
-  const edgeMark={}, nodeMark={}; let correct=0;
-  c.edges.forEach(e=>{const x=expMap[key(e)]; const ok = x && (x.label||null)===(e.label||null); edgeMark[e.id]=ok?'ok':'bad'; if(ok)correct++;});
-  const byId=Object.fromEntries(c.nodes.map(n=>[n.id,n]));
+  // 同名同符號的方塊（例如兩個「算面積」）可以互換：找出讓對的線最多的對應方式
+  const groups={}; q.nodes.forEach(n=>{(groups[n.symbol+'|'+n.text]=groups[n.symbol+'|'+n.text]||[]).push(n.id)});
+  const dup=Object.values(groups).filter(g=>g.length>1);
+  const perms=a=>a.length<=1?[a]:a.flatMap((x,i)=>perms(a.slice(0,i).concat(a.slice(i+1))).map(p=>[x,...p]));
+  let maps=[{}];
+  dup.forEach(g=>{const nm=[];perms(g).forEach(p=>{maps.forEach(m=>{const m2={...m};g.forEach((id,i)=>m2[id]=p[i]);nm.push(m2)})});maps=nm});
+  let best=null,bestScore=-1;
+  maps.forEach(m=>{const sc=c.edges.filter(e=>{const x=expMap[(m[e.from]||e.from)+'>'+(m[e.to]||e.to)];return x&&(x.label||null)===(e.label||null)}).length; if(sc>bestScore){bestScore=sc;best=m}});
+  const M=best||{}; const R={}; Object.entries(M).forEach(([a,b])=>R[b]=a);
+  const sEdges=c.edges.map(e=>({...e,from:M[e.from]||e.from,to:M[e.to]||e.to}));
+  const edgeMark={}, nodeMarkC={}; let correct=0;
+  sEdges.forEach(e=>{const x=expMap[key(e)]; const ok = x && (x.label||null)===(e.label||null); edgeMark[e.id]=ok?'ok':'bad'; if(ok)correct++;});
+  const byId=Object.fromEntries(q.nodes.map(n=>[n.id,n]));
   const problems=[]; // 依題目順序找第一個問題
   q.nodes.forEach(n=>{
-    const outExp=exp.filter(e=>e.from===n.id), outStu=c.edges.filter(e=>e.from===n.id);
-    const inStu=c.edges.filter(e=>e.to===n.id);
+    const outExp=exp.filter(e=>e.from===n.id), outStu=sEdges.filter(e=>e.from===n.id);
+    const inStu=sEdges.filter(e=>e.to===n.id);
     let bad=false, msg=null;
     if(n.symbol!=='terminal'||n.id===q.nodes[0].id){
       if(outExp.length && !outStu.length){bad=true; msg = n.id===q.nodes[0].id?'先從「開始」拉一條線出來。':n.symbol==='decision'?'判斷一定要有「是」和「否」兩條路。':`「${n.text}」之後，下一步是什麼？`}
@@ -726,14 +1418,18 @@ function grade(){
       if(lab){bad=true;msg='「是」和「否」接反了嗎？再想想哪一邊才對。'}
     }
     if(!bad && n.id!==q.nodes[0].id && !inStu.length){bad=true;msg=`「${n.text}」沒有人接到它。`}
-    nodeMark[n.id]=bad?'bad':'ok'; if(bad&&msg) problems.push(msg);
+    nodeMarkC[n.id]=bad?'bad':'ok'; if(bad&&msg) problems.push(msg);
   });
+  const nodeMark={}; c.nodes.forEach(n=>{nodeMark[n.id]=nodeMarkC[M[n.id]||n.id]});
+  // 版面提醒：由上而下、由左至右
+  const pos=Object.fromEntries(c.nodes.map(n=>[n.id,n]));
+  const upward=c.edges.some(e=>{const a=pos[e.from],b=pos[e.to];return a&&b&&(b.y+b.h/2)<(a.y+a.h/2)-10});
   const allOk = problems.length===0 && correct===exp.length && c.edges.length===exp.length;
   c.graded={edgeMark,nodeMark,allOk,correct,total:exp.length};
   drawCanvas();
   const mode = S.screen==='draw'?'draw':'sort';
   S.attempts[mode+':'+q.id]=(S.attempts[mode+':'+q.id]||0)+1;
-  showRes(allOk, allOk?'太棒了，全部正確！':'差一點！', allOk?`${exp.length} 條線都接對了。把圖存下來吧。`:problems[0], correct, exp.length);
+  showRes(allOk, allOk?(upward?'全部接對了！':'太棒了，全部正確！'):'差一點！', allOk?(upward?'不過流程圖習慣「由上而下、由左至右」，有幾條線往上走，試著把後面的方塊往下移。':`${exp.length} 條線都接對了。把圖存下來吧。`):problems[0], correct, exp.length);
   if(allOk){S.done[mode+':'+q.id]=true;store.set('done',S.done);celebrate()}
   logResult({mode, qid:q.id, title:q.title, result:allOk?'過關':'未過', score:`${correct}/${exp.length}`, attempt:S.attempts[mode+':'+q.id], hint:allOk?'':problems[0]});
 }
