@@ -1040,7 +1040,7 @@ function render(){
 }
 function topbar(mid,right){
   return `<div class="topbar">
-    <div class="left"><button class="logo" data-go="home" aria-label="回首頁"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#1C1A17" stroke-width="1.8"><rect x="2" y="1.5" width="12" height="4" rx="2"/><path d="M8 5.5v3M3 12l5-3.5 5 3.5-5 3z"/></svg></button>${mid||'<span class="brand">流程圖練習器</span>'}</div>
+    <div class="left">${S.screen!=='home'?'<button class="sm" data-go="home">← 回首頁</button>':''}<button class="logo" data-go="home" aria-label="回首頁"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#1C1A17" stroke-width="1.8"><rect x="2" y="1.5" width="12" height="4" rx="2"/><path d="M8 5.5v3M3 12l5-3.5 5 3.5-5 3z"/></svg></button>${mid||'<span class="brand">流程圖練習器</span>'}</div>
     <div class="right">${right||''}</div></div>`;
 }
 function stepChips(cur){
@@ -1166,16 +1166,16 @@ function viewCanvasScreen(){
 }
 function canvasToolbar(){
   const free=S.screen==='free';
-  return `<button class="sm" data-cv="undo">復原</button><button class="sm" data-cv="clear">清空</button><button class="sm" data-cv="png">下載圖片</button><span style="width:1px;height:24px;background:var(--border);margin:0 4px"></span>
+  return `<button class="sm" data-cv="undo">復原</button><button class="sm" data-cv="clear">清空</button><button class="sm ${S.screen==='free'?'primary':''}" data-cv="png">下載圖片</button><span style="width:1px;height:24px;background:var(--border);margin:0 4px"></span>
     ${S.screen==='draw'?'<button data-act="back">上一步</button>':''}${free?'':'<button class="primary" data-cv="grade">批改</button>'}`;
 }
 function canvasBody(){
   const free=S.screen==='free';
   const trayTitle = free ? '符號' : '方塊';
   return `<div class="work"><div class="tray"><div class="h"><span>${trayTitle}</span><span class="cnt" id="traycnt"></span></div>
-    <p class="small muted" style="line-height:1.5">${free?'把符號拖到右邊，雙擊方塊可以改字。':'把方塊拖到右邊，從方塊邊緣的小圓點拉線接到下一個。'}</p>
+    <p class="small muted" style="line-height:1.5">${free?'把符號拖到右邊，點一下方塊可以改字或刪除。':'把方塊拖到右邊，從方塊邊緣的小圓點拉線接到下一個。'}</p>
     <div id="tray" style="display:flex;flex-direction:column;gap:10px"></div>
-    <button class="sm" data-act="symbols">符號說明</button><div class="tips"><b>小提醒</b><span>判斷（菱形）一定要有「是」和「否」兩條路。</span><span>箭頭有方向，從上一步指向下一步。</span><span>點一下線可以刪除；雙擊方塊${free?'改字':'放回左邊'}。</span></div></div>
+    <button class="sm" data-act="symbols">符號說明</button><div class="tips"><b>小提醒</b><span>判斷（菱形）一定要有「是」和「否」兩條路。</span><span>箭頭有方向，從上一步指向下一步。</span><span>點一下方塊可以${free?'改字或刪除':'放回左邊'}；點一下線可以刪除。</span></div></div>
     <div class="cv" id="cv"><svg id="svg" xmlns="http://www.w3.org/2000/svg"></svg><div class="empty" id="cvempty">把左邊的方塊拖進來<br><span class="small">從方塊邊緣的小圓點拉線，接到下一個方塊</span></div></div></div>`;
 }
 
@@ -1287,7 +1287,7 @@ function drawTray(){
     t.innerHTML=BANK.symbols.map(s=>`<div class="tnode ${s.type}" data-tray="${s.type}"><span>${esc(s.zh)}<br><span class="small" style="opacity:.8">${esc(s.en)}</span></span></div>`).join('');
     $('#traycnt').textContent='';
   } else {
-    t.innerHTML=c.tray.map(n=>`<div class="tnode ${n.symbol}" data-tray="${n.id}"><span>${esc(n.text)}</span></div>`).join('')||'<div class="small faint" style="padding:10px;border:1px dashed var(--border-strong);border-radius:10px;line-height:1.6">方塊都放上去了。雙擊畫布上的方塊可以放回來。</div>';
+    t.innerHTML=c.tray.map(n=>`<div class="tnode ${n.symbol}" data-tray="${n.id}"><span>${esc(n.text)}</span></div>`).join('')||'<div class="small faint" style="padding:10px;border:1px dashed var(--border-strong);border-radius:10px;line-height:1.6">方塊都放上去了。點畫布上的方塊可以放回來。</div>';
     $('#traycnt').textContent=c.tray.length?`還有 ${c.tray.length} 個`:'';
   }
 }
@@ -1295,7 +1295,7 @@ function svgPoint(ev){const svg=$('#svg');const r=svg.getBoundingClientRect();re
 function hideRes(){const r=$('#resbar');if(r)r.remove();const ce=$('#celebrate');if(ce)ce.remove()}
 
 /* 滑鼠／觸控互動 */
-let drag=null;
+let drag=null; let lastTap={};
 function cvPointerDown(ev){
   const c=S.cv; if(!c) return;
   const trayEl=ev.target.closest('[data-tray]');
@@ -1311,7 +1311,9 @@ function cvPointerDown(ev){
   const port=ev.target.closest('.port');
   if(port){ev.preventDefault();const g=port.closest('.node');const n=c.nodes.find(x=>x.id===g.dataset.id);const [x,y]=portPos(n,port.dataset.port);drag={type:'link',from:n.id,x1:x,y1:y};c.temp={x1:x,y1:y,x2:x,y2:y};drawCanvas();return}
   const node=ev.target.closest('.node');
-  if(node){ev.preventDefault();const n=c.nodes.find(x=>x.id===node.dataset.id);const [px,py]=svgPoint(ev);drag={type:'node',id:n.id,dx:px-n.x,dy:py-n.y,moved:false};c.selNode=n.id;c.selEdge=null;drawCanvas();return}
+  if(node){ev.preventDefault();closePop();const n=c.nodes.find(x=>x.id===node.dataset.id);const [px,py]=svgPoint(ev);
+    const now=Date.now(); if(lastTap.id===n.id&&now-lastTap.t<400){lastTap={};drag=null;return nodeAction(n,px,py,'dbl')} lastTap={id:n.id,t:now};
+    drag={type:'node',id:n.id,dx:px-n.x,dy:py-n.y,moved:false,px,py};c.selNode=n.id;c.selEdge=null;drawCanvas();return}
   const edge=ev.target.closest('.edge');
   if(edge){c.selEdge=edge.dataset.eid;c.selNode=null;drawCanvas();showEdgePop(edge.dataset.eid);return}
   c.selEdge=null;c.selNode=null;closePop();drawCanvas();
@@ -1343,15 +1345,25 @@ function cvPointerUp(ev){
     }
     drawCanvas();
   }
+  if(drag&&drag.type==='node'&&!drag.moved){ const n=S.cv.nodes.find(x=>x.id===drag.id); const d=drag; drag=null; setTimeout(()=>{ if(lastTap.id===n.id) showNodePop(n) },410); return; }
   drag=null;
 }
-function cvDblClick(ev){
-  const c=S.cv; const node=ev.target.closest('.node'); if(!node) return;
-  const n=c.nodes.find(x=>x.id===node.dataset.id);
-  if(c.free){ const [px,py]=svgPoint(ev); editText(px,py,n); return; }
+function cvDblClick(ev){}
+function removeNode(n){ const c=S.cv; cvSnapshot(); hideRes(); c.graded=null; c.edges=c.edges.filter(e=>e.from!==n.id&&e.to!==n.id); c.nodes=c.nodes.filter(x=>x!==n); if(!c.free) c.tray.push(n); c.selNode=null; closePop(); drawCanvas(); }
+function showNodePop(n){
+  const c=S.cv; if(!c||!c.nodes.includes(n)) return; if(c.lockNodes) return;
+  closePop(); const cv=$('#cv'); const p=document.createElement('div'); p.className='pop'; p.id='pop'; p.style.width='auto';
+  p.style.left=Math.min(n.x+n.w+10,cv.clientWidth-210)+'px'; p.style.top=Math.max(8,Math.min(n.y,cv.clientHeight-60))+'px';
+  p.innerHTML=`<div class="row">${c.free?'<button class="sm" data-edit="1">改字</button>':''}<button class="sm" data-rm="1" style="color:var(--danger-soft);border-color:var(--danger)">${c.free?'刪除':'放回左邊'}</button></div>`;
+  p.addEventListener('pointerdown',e=>e.stopPropagation());
+  p.addEventListener('click',e=>{ if(e.target.closest('[data-edit]')) editText(n.x+n.w/2,n.y+n.h/2,n); if(e.target.closest('[data-rm]')) removeNode(n); });
+  cv.appendChild(p);
+}
+function nodeAction(n,px,py){
+  const c=S.cv;
+  if(c.free){ editText(px,py,n); return; }
   if(c.lockNodes) return toast('這個模式方塊不能移回去，只要接線就好');
-  cvSnapshot(); hideRes(); c.graded=null;
-  c.edges=c.edges.filter(e=>e.from!==n.id&&e.to!==n.id); c.nodes=c.nodes.filter(x=>x!==n); c.tray.push(n); c.selNode=null; drawCanvas();
+  removeNode(n);
 }
 function askLabel(x,y,cb){
   closePop(); const cv=$('#cv'); const p=document.createElement('div'); p.className='pop'; p.id='pop';
@@ -1455,7 +1467,7 @@ function celebrate(){
 }
 
 /* ===================== 下載 PNG ===================== */
-function downloadPng(){
+function downloadPng(send){
   const c=S.cv; if(!c.nodes.length) return toast('畫布是空的');
   const pad=40; const minX=Math.min(...c.nodes.map(n=>n.x))-pad, minY=Math.min(...c.nodes.map(n=>n.y))-pad;
   const maxX=Math.max(...c.nodes.map(n=>n.x+n.w))+pad+60, maxY=Math.max(...c.nodes.map(n=>n.y+n.h))+pad;
@@ -1468,6 +1480,7 @@ function downloadPng(){
   const svgStr=`<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" style="font-family:'LXGW WenKai TC','PingFang TC','Microsoft JhengHei',system-ui,sans-serif">${inner}</svg>`;
   const img=new Image(); const url=URL.createObjectURL(new Blob([svgStr],{type:'image/svg+xml;charset=utf-8'}));
   img.onload=()=>{const cv=document.createElement('canvas');cv.width=W*2;cv.height=H*2;const ctx=cv.getContext('2d');ctx.scale(2,2);ctx.drawImage(img,0,0);URL.revokeObjectURL(url);
+    if(send){ return send(cv.toDataURL('image/png'), title); }
     cv.toBlob(b=>{const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=(title+(who?'-'+who:'')).replace(/\s+/g,'_')+'.png';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000);toast('圖片已下載')},'image/png')};
   img.onerror=()=>toast('下載失敗，請改用螢幕截圖');
   img.src=url;
@@ -1501,7 +1514,7 @@ function showHelp(){
     <div class="s"><span class="n">2</span><b>拉箭頭</b><span>按住方塊邊緣的小圓點，拖到下一個方塊上放開。</span></div>
     <div class="s"><span class="n">3</span><b>選是或否</b><span>從菱形拉線出來時，要選這條路是「是」還是「否」。</span></div>
   </div>
-  <p class="small muted">點一下線可以刪除或改「是／否」。雙擊方塊可以放回左邊。畫錯了按「復原」。</p>`);
+  <p class="small muted">點一下線可以刪除或改「是／否」；點一下方塊可以刪除（自由畫布還可以改字）。畫錯了按「復原」，要離開按左上「回首頁」。</p>`);
 }
 const SYMBOL_TABLE=[
   ['terminal','開始／結束','流程的開始或結束（副程式的結束叫「返回」）',true],
