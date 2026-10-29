@@ -162,6 +162,7 @@ p{margin:0}
 .modal{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:90;display:none;align-items:center;justify-content:center;padding:24px}
 .modal.show{display:flex}
 .modal .box{background:var(--surface);border:1px solid var(--border-strong);border-radius:16px;padding:24px 28px;width:min(640px,100%);max-height:90vh;overflow:auto;display:flex;flex-direction:column;gap:16px}
+#tsvgwrap svg{width:auto!important;height:auto!important;max-width:none}
 .tn:focus{outline:none}.tn:focus-visible>rect{stroke:#E0B35C!important;stroke-width:4}
 .symtab{width:100%;border-collapse:separate;border-spacing:0 6px}
 .symtab td{background:var(--bg);padding:8px 14px;vertical-align:middle;font-size:15px}
@@ -2137,7 +2138,7 @@ function snap(){ T.undo.push(JSON.stringify({nodes:T.nodes,edges:T.edges,tray:T.
 function changed(){ saveT(); drawTree(); }
 function undo(){ const s=T.undo.pop(); if(!s) return toast('沒有可以復原的了'); T.redo.push(JSON.stringify({nodes:T.nodes,edges:T.edges,tray:T.tray})); Object.assign(T,JSON.parse(s)); T.result=null; closeTPop(); saveT(); redrawPanel(); drawTree(); }
 function redo(){ const s=T.redo.pop(); if(!s) return toast('沒有可以重做的了'); T.undo.push(JSON.stringify({nodes:T.nodes,edges:T.edges,tray:T.tray})); Object.assign(T,JSON.parse(s)); closeTPop(); saveT(); redrawPanel(); drawTree(); }
-function pt(ev){ const svg=$('#tsvg'); const r=svg.getBoundingClientRect(); return [(ev.clientX-r.left)/T.scale,(ev.clientY-r.top)/T.scale]; }
+function pt(ev){ const svg=$('#tsvg'); const r=svg.getBoundingClientRect(); const vb=svg.viewBox.baseVal; const k=vb&&vb.width?r.width/vb.width:T.scale; return [(ev.clientX-r.left)/k,(ev.clientY-r.top)/k]; }
 function nodeAt(x,y){ return [...T.nodes].reverse().find(n=>{const d=nodeDims(n);return x>=n.x&&x<=n.x+d.w&&y>=n.y&&y<=n.y+d.h}); }
 function freeSpot(){ let x=40,y=40; const cv=$('#tcv'); const W=(cv?cv.clientWidth:700)/T.scale-180;
   for(let tries=0;tries<200;tries++){ if(!T.nodes.some(n=>Math.abs(n.x-x)<170&&Math.abs(n.y-y)<90)) return [x,y]; x+=190; if(x>W){x=40;y+=110} } return [40,40]; }
