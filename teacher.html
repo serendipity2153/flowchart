@@ -45,6 +45,7 @@ td.name,th.name{text-align:left;position:sticky;left:0;background:var(--surface)
 .item{display:grid;grid-template-columns:150px 1fr auto;gap:12px;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:14px}
 .item:last-child{border-bottom:0}
 .pill{font-size:12px;padding:1px 10px;border-radius:999px}
+.cell.wait{background:rgba(224,179,92,.15);color:var(--warning)}
 .pill.ok{background:rgba(143,191,138,.18);color:var(--success-soft)}
 .pill.bad{background:rgba(224,122,107,.18);color:var(--danger-soft)}
 .two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
@@ -81,7 +82,9 @@ code{background:var(--bg);border:1px solid var(--border);border-radius:6px;paddi
 const SHEET_URL_DEFAULT = "https://script.google.com/macros/s/AKfycbynvQvpxCZFPE7eB7UNeJKA-V93Rn-eUVv2ldOAiVE0QPLRRRNHV13ZNGutJNjtvoXWAw/exec";   // 跟 index.html 一樣，貼上 Apps Script 網址，其他老師就不用自己貼
 /* ===================== */
 const QUESTIONS = [["q1", "刷牙"], ["q2", "泡一碗泡麵"], ["q3", "算長方形的面積"], ["q4", "要不要帶雨傘"], ["q5", "及格了嗎"], ["q6", "兩個長方形的面積總和"], ["q7", "規劃一日遊"], ["q8", "副程式裡面：安排交通"]];
-const MODES = ["看題畫圖","看圖答結果","排序方塊"];
+const MODES = ["看題畫圖","看圖答結果","排序方塊","決策樹"];
+const TREE_QUESTIONS = [["t1","今天要帶水壺嗎？"],["t2","猜數字"],["t3","運動場的選擇"],["t4","出門帶雨傘"],["t5","考試成績評語"],["t6","圖書館借書資格"],["t7","飲料店折扣方案"],["t8","校園活動去向"],["t9","機器人迷宮"],["t10","設計自己的決策樹"]];
+const MODE_ALIAS={tree:"決策樹",free:"自由畫布",draw:"看題畫圖",trace:"看圖答結果",sort:"排序方塊"};
 const $=s=>document.querySelector(s);
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const store={get(k,d){try{const v=localStorage.getItem('fct_'+k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem('fct_'+k,JSON.stringify(v))}catch(e){}}};
@@ -100,7 +103,7 @@ function load(){
   function cleanup(){clearTimeout(timer);delete window[cb];sc.remove()}
   window[cb]=(data)=>{cleanup();
     if(!data||data.error){setStatus('err',data&&data.error==='bad_key'?'密碼不對':'讀取失敗');toast(data&&data.error==='bad_key'?'看板密碼不對':'讀取失敗：'+(data&&data.error||'未知'));render();return}
-    S.rows=(data.rows||[]).map(r=>({time:new Date(r[0]),cls:String(r[1]||''),seat:String(r[2]||''),name:String(r[3]||''),mode:String(r[4]||''),qid:String(r[5]||''),title:String(r[6]||''),result:String(r[7]||''),score:String(r[8]||''),attempt:+r[9]||0,seconds:+r[10]||0,hint:String(r[11]||'')}));
+    S.rows=(data.rows||[]).map(r=>({time:new Date(r[0]),cls:String(r[1]||''),seat:String(r[2]||''),name:String(r[3]||''),mode:(m=>MODE_ALIAS[m]||m)(String(r[4]||'')),qid:String(r[5]||''),title:String(r[6]||''),result:String(r[7]||''),score:String(r[8]||''),attempt:+r[9]||0,seconds:+r[10]||0,hint:String(r[11]||'')}));
     S.loadedAt=new Date(); setStatus('on','已連線 · '+S.rows.length+' 筆 · '+S.loadedAt.toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'})); render();};
   sc.src=S.url+(S.url.includes('?')?'&':'?')+'action=data&key='+encodeURIComponent(S.key)+'&callback='+cb+'&_='+Date.now();
   sc.onerror=()=>{cleanup();setStatus('err','連不上');toast('連不上試算表，確認網址結尾是 /exec')};
@@ -118,10 +121,10 @@ function render(){
   const stuMap=new Map();
   rows.forEach(r=>{const k=r.cls+'|'+r.seat+'|'+r.name;if(!stuMap.has(k))stuMap.set(k,{cls:r.cls,seat:r.seat,name:r.name})});
   const students=[...stuMap.values()].sort((a,b)=>a.cls.localeCompare(b.cls)||(+a.seat||0)-(+b.seat||0)||a.seat.localeCompare(b.seat));
-  const qids=QUESTIONS.map(q=>q[0]); mrows.forEach(r=>{if(!qids.includes(r.qid))qids.push(r.qid)});
-  const qTitle=Object.fromEntries(QUESTIONS); mrows.forEach(r=>{if(!qTitle[r.qid])qTitle[r.qid]=r.title});
+  const QL=S.mode==='決策樹'?TREE_QUESTIONS:QUESTIONS; const qids=QL.map(q=>q[0]); mrows.forEach(r=>{if(!qids.includes(r.qid))qids.push(r.qid)});
+  const qTitle=Object.fromEntries(QL); mrows.forEach(r=>{if(!qTitle[r.qid])qTitle[r.qid]=r.title});
   // 每格
-  const cell={}; mrows.forEach(r=>{const k=r.cls+'|'+r.seat+'|'+r.name+'|'+r.qid;const c=cell[k]||(cell[k]={tries:0,pass:false,list:[]});c.tries++;c.list.push(r);if(r.result==='過關')c.pass=true});
+  const cell={}; mrows.forEach(r=>{const k=r.cls+'|'+r.seat+'|'+r.name+'|'+r.qid;const c=cell[k]||(cell[k]={tries:0,pass:false,list:[]});c.tries++;c.list.push(r);if((r.result==='過關'||r.result==='完成待檢視'))c.pass=true});
   const today=new Date().toDateString();
   let passSum=0,stuck=[];
   students.forEach(s=>{qids.forEach(q=>{const c=cell[s.cls+'|'+s.seat+'|'+s.name+'|'+q];if(!c)return;if(c.pass)passSum++;else if(c.tries>=3)stuck.push({s,q,c})})});
@@ -138,9 +141,9 @@ function render(){
     </tbody></table></div><p class="small faint" style="margin:10px 0 0">✓ 過關　✗ 還沒過　橘色＝試了 3 次以上　格子裡的數字是試了幾次。點格子可以看每一次的提示。</p>`
     : `<div class="empty">${S.rows.length?'這個班／這個模式還沒有人作答':'還沒有任何作答紀錄。學生按「批改」後就會出現。'}</div>`;
   const recent=rows.slice().sort((a,b)=>b.time-a.time).slice(0,12);
-  const recentHtml=`<div class="card"><h2 style="margin-bottom:8px">最近作答</h2><div class="list">${recent.length?recent.map(r=>`<div class="item"><span class="muted small">${r.time.toLocaleString('zh-TW',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})}</span><span>${esc(r.cls)} ${esc(r.seat)} ${esc(r.name)} · ${esc(r.mode)} · ${esc(r.title)}${r.hint?`<br><span class="small muted">${esc(r.hint)}</span>`:''}</span><span class="pill ${r.result==='過關'?'ok':'bad'}">${esc(r.result)} ${esc(r.score)}</span></div>`).join(''):'<div class="empty">沒有紀錄</div>'}</div></div>`;
+  const recentHtml=`<div class="card"><h2 style="margin-bottom:8px">最近作答</h2><div class="list">${recent.length?recent.map(r=>`<div class="item"><span class="muted small">${r.time.toLocaleString('zh-TW',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})}</span><span>${esc(r.cls)} ${esc(r.seat)} ${esc(r.name)} · ${esc(r.mode)} · ${esc(r.title)}${r.hint?`<br><span class="small muted">${esc(r.hint)}</span>`:''}</span><span class="pill ${(r.result==='過關'||r.result==='完成待檢視')?'ok':'bad'}">${esc(r.result)} ${esc(r.score)}</span></div>`).join(''):'<div class="empty">沒有紀錄</div>'}</div></div>`;
   const stuckHtml=`<div class="card"><h2 style="margin-bottom:8px">需要幫忙的學生</h2><div class="list">${stuck.length?stuck.map(x=>{const last=x.c.list[x.c.list.length-1];return `<div class="item" style="grid-template-columns:1fr auto"><span>${esc(x.s.cls)} ${esc(x.s.seat)} ${esc(x.s.name)} · ${esc(qTitle[x.q]||x.q)}<br><span class="small muted">最後一次提示：${esc(last.hint||'—')}</span></span><span class="pill bad">${x.c.tries} 次</span></div>`}).join(''):'<div class="empty">目前沒有人卡住</div>'}</div></div>`;
-  const detail = S.detail && cell[S.detail] ? (()=>{const c=cell[S.detail];const r0=c.list[0];return `<div class="card" id="detail"><div class="row" style="justify-content:space-between"><h2>${esc(r0.cls)} ${esc(r0.seat)} ${esc(r0.name)} · ${esc(r0.title)}</h2><button class="sm" id="closedetail">關閉</button></div><div class="list">${c.list.map((r,i)=>`<div class="item"><span class="muted small">第 ${i+1} 次 · ${r.time.toLocaleString('zh-TW',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})} · ${r.seconds} 秒</span><span>${esc(r.hint||'（沒有提示，全部正確）')}</span><span class="pill ${r.result==='過關'?'ok':'bad'}">${esc(r.result)} ${esc(r.score)}</span></div>`).join('')}</div></div>`})() : '';
+  const detail = S.detail && cell[S.detail] ? (()=>{const c=cell[S.detail];const r0=c.list[0];return `<div class="card" id="detail"><div class="row" style="justify-content:space-between"><h2>${esc(r0.cls)} ${esc(r0.seat)} ${esc(r0.name)} · ${esc(r0.title)}</h2><button class="sm" id="closedetail">關閉</button></div><div class="list">${c.list.map((r,i)=>`<div class="item"><span class="muted small">第 ${i+1} 次 · ${r.time.toLocaleString('zh-TW',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})} · ${r.seconds} 秒</span><span>${esc(r.hint||'（沒有提示，全部正確）')}</span><span class="pill ${(r.result==='過關'||r.result==='完成待檢視')?'ok':'bad'}">${esc(r.result)} ${esc(r.score)}</span></div>`).join('')}</div></div>`})() : '';
   main.innerHTML=head+tiles+`<div class="card">${table}</div>`+detail+`<div class="two">${stuckHtml}${recentHtml}</div>`;
   const sel=$('#cls'); if(sel) sel.onchange=()=>{S.cls=sel.value;store.set('cls',S.cls);S.detail=null;render()};
   main.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>{S.mode=b.dataset.mode;store.set('mode',S.mode);S.detail=null;render()});

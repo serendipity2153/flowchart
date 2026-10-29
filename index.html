@@ -31,6 +31,7 @@ a{color:var(--link)}
 #app{height:100%;display:flex;flex-direction:column}
 .topbar{height:56px;flex:none;padding:0 20px 0 24px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:16px}
 .topbar .left,.topbar .right{display:flex;align-items:center;gap:10px;min-width:0}
+.topbar .right{flex-shrink:0}.topbar button{white-space:nowrap}
 .logo{width:28px;height:28px;border-radius:8px;background:var(--primary);display:flex;align-items:center;justify-content:center;flex:none;border:0;padding:0;min-height:0}
 .logo svg{display:block}
 .brand{font-size:16px;font-weight:700;white-space:nowrap}
@@ -161,6 +162,7 @@ p{margin:0}
 .modal{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:90;display:none;align-items:center;justify-content:center;padding:24px}
 .modal.show{display:flex}
 .modal .box{background:var(--surface);border:1px solid var(--border-strong);border-radius:16px;padding:24px 28px;width:min(640px,100%);max-height:90vh;overflow:auto;display:flex;flex-direction:column;gap:16px}
+.tn:focus{outline:none}.tn:focus-visible>rect{stroke:#E0B35C!important;stroke-width:4}
 .symtab{width:100%;border-collapse:separate;border-spacing:0 6px}
 .symtab td{background:var(--bg);padding:8px 14px;vertical-align:middle;font-size:15px}
 .symtab td:first-child{border-radius:10px 0 0 10px;width:110px;text-align:center}
@@ -994,6 +996,7 @@ const MODES = {
   trace:{name:'看圖答結果',desc:'順著箭頭走，猜猜會發生什麼',color:'terminal'},
   sort:{name:'排序方塊',desc:'方塊都給你了，只要接對線',color:'io'},
   free:{name:'自由畫布',desc:'沒有題目，想畫什麼就畫什麼',color:'decision'},
+  tree:{name:'決策樹',desc:'用條件分支做出判斷，10 題由淺到深',color:'subroutine'},
 };
 const $ = (s,el=document)=>el.querySelector(s);
 const esc = s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -1036,6 +1039,7 @@ function render(){
   else if(S.screen==='draw') app.innerHTML=viewDraw();
   else if(S.screen==='trace') app.innerHTML=viewTrace();
   else if(S.screen==='sort'||S.screen==='free') app.innerHTML=viewCanvasScreen();
+  else if(S.screen==='tree'){ app.innerHTML=TreeMode.view(); TreeMode.bind(); return; }
   bind();
 }
 function topbar(mid,right){
@@ -1052,7 +1056,8 @@ function iconSvg(mode){
   const p={draw:'<rect x="3" y="2" width="14" height="5" rx="2.5"/><path d="M10 7v3M4 15l6-4 6 4-6 3z"/>',
     trace:'<circle cx="10" cy="10" r="7"/><path d="M7 10l2 2 4-4"/>',
     sort:'<path d="M4 5h12M4 10h12M4 15h12M8 3l-2 2 2 2M12 13l2 2-2 2"/>',
-    free:'<path d="M3 17l3-1 9-9-2-2-9 9zM12 4l2 2"/>'}[mode];
+    free:'<path d="M3 17l3-1 9-9-2-2-9 9zM12 4l2 2"/>',
+    tree:'<circle cx="10" cy="4" r="2.5"/><circle cx="4" cy="16" r="2.5"/><circle cx="16" cy="16" r="2.5"/><path d="M10 6.5v3M10 9.5L4 13.5M10 9.5l6 4"/>'}[mode];
   return `<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="${c}" stroke-width="1.8">${p}</svg>`;
 }
 
@@ -1060,7 +1065,7 @@ function iconSvg(mode){
 function viewHome(){
   const m=S.mode;
   const TYPE_ZH={sequence:'直敘',decision:'選擇',subroutine:'副程式'}; const TYPE_CLS={sequence:'seq',decision:'dec',subroutine:'sub'};
-  const qlist = m==='free' ? '' : `<div style="display:flex;flex-direction:column;gap:12px">
+  const qlist = m==='free' ? '' : m==='tree' ? TreeMode.homeList() : `<div style="display:flex;flex-direction:column;gap:12px">
     <div style="display:flex;align-items:baseline;gap:12px"><h2>選一題</h2><span class="small muted">共 ${BANK.questions.length} 題，由簡單到難 · ${Object.keys(TYPE_ZH).map(t=>TYPE_ZH[t]+' '+BANK.questions.filter(q=>q.type===t).length+' 題').join('、')}</span></div>
     <div class="grid4">${BANK.questions.map((q,i)=>`<button class="qcard" data-q="${i}"><span class="t">${i+1} ${esc(q.title)}</span><span style="display:flex;gap:6px"><span class="tag ${TYPE_CLS[q.type]||'seq'}">${TYPE_ZH[q.type]||q.type}</span>${S.done[m+':'+q.id]?'<span class="tag ok">已過關</span>':''}</span></button>`).join('')}
     </div></div>`;
@@ -1071,7 +1076,7 @@ function viewHome(){
     <div class="card who"><span style="font-weight:700;font-size:14px;color:var(--muted)">我是</span>
       <input id="w-cls" placeholder="班級（如 701）" value="${esc(S.who.cls)}"><input id="w-seat" placeholder="座號" value="${esc(S.who.seat)}"><input id="w-name" class="name" placeholder="姓名" value="${esc(S.who.name)}">
       <span class="small faint">${sheetOn?'填了老師才看得到你的作答紀錄':'（這台電腦會記住）'}</span></div>
-    <div class="grid4">${Object.entries(MODES).map(([k,v])=>`<button class="modecard ${k===m?'sel':''}" data-mode="${k}"><span class="ic" style="background:${COLORS[v.color].fill}">${iconSvg(k)}</span><span class="t">${v.name}</span><span class="d">${v.desc}</span></button>`).join('')}</div>
+    <div class="grid4" style="grid-template-columns:repeat(5,minmax(0,1fr))">${Object.entries(MODES).map(([k,v])=>`<button class="modecard ${k===m?'sel':''}" data-mode="${k}"><span class="ic" style="background:${COLORS[v.color].fill}">${iconSvg(k)}</span><span class="t">${v.name}</span><span class="d">${v.desc}</span></button>`).join('')}</div>
     ${qlist}
     ${m==='free'?'<div class="actions" style="justify-content:flex-start"><button class="primary" data-act="free">打開自由畫布</button></div>':''}
     <div class="card legend"><span style="font-size:14px;font-weight:700;color:var(--muted)">符號</span>
@@ -1563,6 +1568,7 @@ function showSettings(){
 /* ===================== 事件綁定 ===================== */
 function startQuestion(mode,qi){
   if(needWho()) return toast('先在上面填班級、座號、姓名，老師才看得到你的作答');
+  if(mode==='tree') return TreeMode.start(qi);
   S.qi=qi; S.qStart=Date.now(); S.mode=mode;
   if(mode==='draw'){S.screen='draw';S.step=1;S.s2={start:null,end:null,has:null,which:null,checked:false};render();startCountdown();}
   else if(mode==='trace'){S.screen='trace';S.tr={sel:null,checked:false};render();}
@@ -1676,8 +1682,813 @@ window.addEventListener('hashchange',()=>{if(S.screen==='home')render()});
 
 /* 啟動 */
 S.mode=store.get('mode','draw'); if(!MODES[S.mode]) S.mode='draw';
-render(); checkNarrow(); flushQueue();
+window.addEventListener('DOMContentLoaded',()=>{ render(); checkNarrow(); flushQueue(); });
 document.fonts&&document.fonts.ready.then(()=>{ if(S.cv) { S.cv.nodes.forEach(n=>Object.assign(n,nodeSize(n.symbol,n.text))); drawCanvas(); } });
+</script>
+<script>
+/* ===================== 決策樹練習模組 ===================== */
+(function(){
+const TEACHER = ()=>location.hash==='#teacher';
+const B=(key,name,label,t,f)=>({key,name,label,type:'bool',t,f});
+const E=(key,name,label,values)=>({key,name,label,type:'enum',values});
+const I=(key,name,label,min,max,unit='',crit=[])=>({key,name,label,type:'int',min,max,unit,crit});
+const D=(v,br)=>({v,br}); const L=o=>({o});
+const C=x=> x===true||x===false ? {op:'is',v:x} : Array.isArray(x)&&typeof x[0]==='string'&&!['<','<=','>','>=','==','!=','between'].includes(x[0]) ? {op:'in',vals:x} : x[0]==='between' ? {op:'between',lo:x[1],hi:x[2]} : {op:x[0],v:x[1]};
+const allBool=(keys)=>{const out=[];const n=keys.length;for(let m=0;m<(1<<n);m++){const o={};keys.forEach((k,i)=>o[k]=!!(m&(1<<(n-1-i))));out.push(o)}return out};
+
+const TQ=[
+ {id:'t1',title:'今天要帶水壺嗎？',stars:1,kind:'單一二分判斷',level:'skeleton',
+  story:'上體育課前，判斷今天是否有體育課。有就帶水壺，沒有就不用特別準備體育課水壺。',
+  goal:'從判斷節點拉出兩條線，標上條件，再幫兩個葉節點選好結果。',
+  vars:[B('hasPE','體育課','今天有體育課嗎？','有','沒有')],
+  outputs:['帶水壺','不需準備體育課水壺'],
+  rule:x=>x.hasPE?'帶水壺':'不需準備體育課水壺',
+  tests:[{hasPE:true},{hasPE:false}],
+  ref:D('hasPE',[[true,L('帶水壺')],[false,L('不需準備體育課水壺')]]),
+  hints:['第一個要問的問題是：今天有沒有體育課？','這個問題只有「有」和「沒有」兩種答案，所以要拉出兩條線。','「有」接到「帶水壺」，那「沒有」該接到哪個結果？'],
+  focus:'一個判斷、兩條有標籤的分支、兩個輸出。'},
+ {id:'t2',title:'猜數字：太大、太小、猜對',stars:1,kind:'三種比較結果',level:'skeleton',
+  story:'電腦設定答案 A＝7，你輸入猜測 B。請畫出判斷 B 與 7 大小的決策樹，產生「太小了／猜對了／太大了」。',
+  goal:'用條件「< 7」「= 7」「> 7」把三種情況分開。也可以用兩個判斷連續比較。',
+  note:'這題只畫「猜一次」的判斷。猜錯要再猜一次，是樹外面的重複流程，不要在樹上畫往回的箭頭。',
+  vars:[I('guess','B','你猜的數字 B 是多少？',0,100,'',[7])],
+  outputs:['太小了','猜對了','太大了'],
+  rule:x=>x.guess<7?'太小了':x.guess===7?'猜對了':'太大了',
+  tests:[3,6,7,8,12].map(g=>({guess:g})),
+  ref:D('guess',[[['<',7],L('太小了')],[['==',7],L('猜對了')],[['>',7],L('太大了')]]),
+  hints:['要問的問題是：B 跟 7 比起來怎麼樣？','比大小會有三種結果：比 7 小、剛好等於 7、比 7 大。','記得檢查 B＝7 的時候會走哪一條路，6 和 8 也試試看。'],
+  focus:'三種比較結果互不重疊；B＝7 的邊界要正確。'},
+ {id:'t3',title:'運動場的選擇',stars:2,kind:'兩層二分',level:'cards',
+  story:'到運動場後，若有人打籃球，詢問能否加入；能加入就打籃球，否則拉單槓。若沒人打籃球，則檢查鞋子是否適合跑步；適合就跑運動場，不適合就開合跳。',
+  goal:'把左邊的節點卡片排好、連起來，畫出四種可能結果。',
+  vars:[B('players','有人打籃球','有人在打籃球嗎？','有','沒有'),B('canJoin','能加入','可以加入他們嗎？','可以','不可以'),B('shoes','鞋子適合','鞋子適合跑步嗎？','適合','不適合')],
+  outputs:['打籃球','拉單槓','跑運動場','開合跳'],
+  rule:x=>x.players?(x.canJoin?'打籃球':'拉單槓'):(x.shoes?'跑運動場':'開合跳'),
+  tests:[{players:true,canJoin:true,shoes:false},{players:true,canJoin:false,shoes:true},{players:false,canJoin:true,shoes:true},{players:false,canJoin:false,shoes:false}],
+  ref:D('players',[[true,D('canJoin',[[true,L('打籃球')],[false,L('拉單槓')]])],[false,D('shoes',[[true,L('跑運動場')],[false,L('開合跳')]])]]),
+  hints:['第一個問題：有沒有人在打籃球？','「有人」那邊接著問能不能加入；「沒有人」那邊接著問鞋子適不適合跑步。','每個決策節點都要有兩條線，最下面一共四個結果。'],
+  focus:'根節點往下延伸的多重決策；不相關的條件不影響結果。'},
+ {id:'t4',title:'出門帶雨傘',stars:2,kind:'多分支、邊界值',level:'cards',
+  story:'天氣晴天不帶傘、下雨帶傘、多雲才判斷濕度。多雲且濕度低於 50% 不帶傘；濕度大於或等於 50% 帶傘。',
+  goal:'天氣有三種，所以根節點要拉出三條線；多雲那條再接一個濕度的判斷。',
+  note:'這是課堂練習用的假設規則，不是真的天氣預報方法。',
+  vars:[E('weather','天氣','今天天氣如何？',['晴天','多雲','下雨']),I('humidity','濕度','濕度是多少？',0,100,'%',[50])],
+  outputs:['帶傘','不帶傘'],
+  rule:x=>x.weather==='晴天'?'不帶傘':x.weather==='下雨'?'帶傘':(x.humidity<50?'不帶傘':'帶傘'),
+  tests:[{weather:'晴天',humidity:90},{weather:'下雨',humidity:10},{weather:'多雲',humidity:49},{weather:'多雲',humidity:50},{weather:'多雲',humidity:51}],
+  ref:D('weather',[[['晴天'],L('不帶傘')],[['多雲'],D('humidity',[[['<',50],L('不帶傘')],[['>=',50],L('帶傘')]])],[['下雨'],L('帶傘')]]),
+  hints:['先問天氣：晴天、多雲、下雨。','只有「多雲」要再問濕度，晴天和下雨直接有答案。','濕度剛好 50% 要帶傘，所以條件是「≥ 50」和「< 50」。'],
+  focus:'一個節點三條分支；濕度 49／50／51 的邊界。'},
+ {id:'t5',title:'考試成績評語',stars:2,kind:'數值區間',level:'free',
+  story:'依成績給評語：90～100 分「表現優異」，80～89 分「表現良好」，60～79 分「達到標準」，0～59 分「繼續努力」。',
+  goal:'自己拖出節點、選問題和結果。每個分數只能走到一個評語，0～100 分都要有路。',
+  vars:[I('score','分數','分數是多少？',0,100,'分',[60,80,90])],
+  outputs:['表現優異','表現良好','達到標準','繼續努力'],
+  rule:x=>x.score>=90?'表現優異':x.score>=80?'表現良好':x.score>=60?'達到標準':'繼續努力',
+  tests:[0,59,60,79,80,89,90,100].map(s=>({score:s})),
+  ref:D('score',[[['>=',90],L('表現優異')],[['<',90],D('score',[[['>=',80],L('表現良好')],[['<',80],D('score',[[['>=',60],L('達到標準')],[['<',60],L('繼續努力')]])]])]]),
+  hints:['問題只有一個：分數是多少？可以一次分四條，也可以一層一層比。','一層一層比的話：先問「≥ 90 嗎？」，不是的再問「≥ 80 嗎？」……','檢查 59、60、79、80、89、90 這幾個邊界分數各走到哪裡。'],
+  focus:'範圍互斥、完整涵蓋、邊界值。'},
+ {id:'t6',title:'圖書館借書資格',stars:3,kind:'AND 與判斷順序',level:'free',
+  story:'學生必須有借書證，而且目前借出本數少於 5 本，而且沒有逾期未還，才能再借一本書。否則顯示「暫時無法借書」。',
+  goal:'設計決策樹，並在左邊寫下你為什麼這樣排判斷順序。順序不同沒關係，結果對就好。',
+  explain:true,
+  vars:[B('hasCard','借書證','有借書證嗎？','有','沒有'),I('borrowed','已借本數','已經借了幾本？',0,10,'本',[5]),B('overdue','逾期','有逾期未還的書嗎？','有','沒有')],
+  outputs:['可以借書','暫時無法借書'],
+  rule:x=>x.hasCard&&x.borrowed<5&&!x.overdue?'可以借書':'暫時無法借書',
+  tests:[{hasCard:true,borrowed:4,overdue:false},{hasCard:true,borrowed:5,overdue:false},{hasCard:true,borrowed:2,overdue:true},{hasCard:false,borrowed:0,overdue:false},{hasCard:false,borrowed:6,overdue:true}],
+  ref:D('hasCard',[[false,L('暫時無法借書')],[true,D('borrowed',[[['>=',5],L('暫時無法借書')],[['<',5],D('overdue',[[true,L('暫時無法借書')],[false,L('可以借書')]])]])]]),
+  hints:['三個條件「都要成立」才能借書，只要有一個不成立就不能借。','可以先問一個條件，不成立就直接「暫時無法借書」，成立再問下一個。','借了剛好 5 本，可以借嗎？檢查「< 5」和「≥ 5」。'],
+  focus:'多條件都成立才通過；不同判斷順序結果正確即可。'},
+ {id:'t7',title:'飲料店折扣方案',stars:3,kind:'判斷優先與互斥',level:'free',
+  story:'飲料原價 50 元。學生會員享 8 折；一般會員享 9 折；非會員原價。每筆訂單只能使用一種身分折扣。',
+  goal:'畫出結帳金額的決策樹。想想：身分會不會同時是兩種？折扣可以疊加嗎？',
+  vars:[E('membership','身分','是哪一種身分？',['學生會員','一般會員','非會員'])],
+  outputs:['40 元','45 元','50 元','36 元'],
+  rule:x=>({學生會員:'40 元',一般會員:'45 元',非會員:'50 元'})[x.membership],
+  tests:[{membership:'學生會員'},{membership:'一般會員'},{membership:'非會員'}],
+  ref:D('membership',[[['學生會員'],L('40 元')],[['一般會員'],L('45 元')],[['非會員'],L('50 元')]]),
+  hints:['只要問一個問題：是哪一種身分？','三種身分不會重疊，所以拉三條線。','50 元打 8 折是 40 元、打 9 折是 45 元。折扣不能重複套用，所以不會出現 36 元。'],
+  focus:'身分互斥；折扣不能重複套用。'},
+ {id:'t8',title:'校園活動去向',stars:4,kind:'兩個條件混合、多結果',level:'free',
+  story:'今天若下雨，活動一律改在室內：有空教室就玩桌遊；沒有空教室就在走廊進行閱讀。若沒下雨，依空氣品質指標 AQI：AQI≤100 去操場活動；AQI>100 留在教室做伸展。',
+  goal:'畫出決策樹。注意：下雨的時候不用管 AQI，沒下雨的時候不用管空教室。',
+  note:'這是為了教學簡化的規則，實際活動安排要遵守學校安全規定。',
+  vars:[B('raining','下雨','有下雨嗎？','有','沒有'),B('room','空教室','有空教室嗎？','有','沒有'),I('aqi','AQI','AQI 是多少？',0,500,'',[100])],
+  outputs:['室內桌遊','走廊閱讀','操場活動','教室伸展'],
+  rule:x=>x.raining?(x.room?'室內桌遊':'走廊閱讀'):(x.aqi<=100?'操場活動':'教室伸展'),
+  tests:[{raining:true,room:true,aqi:300},{raining:true,room:false,aqi:20},{raining:false,room:true,aqi:99},{raining:false,room:false,aqi:100},{raining:false,room:true,aqi:101}],
+  ref:D('raining',[[true,D('room',[[true,L('室內桌遊')],[false,L('走廊閱讀')]])],[false,D('aqi',[[['<=',100],L('操場活動')],[['>',100],L('教室伸展')]])]]),
+  hints:['第一個問題：有沒有下雨？','下雨那邊問空教室；沒下雨那邊問 AQI。','AQI 剛好 100 要去操場，所以是「≤ 100」和「> 100」。'],
+  focus:'兩個條件分開處理；AQI 100／101 的邊界；無關條件不影響結果。'},
+ {id:'t9',title:'機器人迷宮：下一步怎麼走？',stars:4,kind:'決策規則與重複應用',level:'free',maze:true,
+  story:'機器人每到一格都觀察前方、右方、左方是否可走。規則：右邊能走就向右；否則前方能走就直走；否則左邊能走就向左；三個方向都不通就原地停止。',
+  goal:'只設計「走一步」的決策樹。右邊的迷宮會每走一步就用你的樹判斷一次。',
+  note:'這個簡單規則不保證每個迷宮都走得到終點。走不到不一定是你的樹錯，要看「檢查答案」。',
+  vars:[B('right','右邊','右邊能走嗎？','能','不能'),B('front','前方','前方能走嗎？','能','不能'),B('left','左邊','左邊能走嗎？','能','不能')],
+  outputs:['右轉前進','前進','左轉前進','停止'],
+  rule:x=>x.right?'右轉前進':x.front?'前進':x.left?'左轉前進':'停止',
+  tests:allBool(['right','front','left']),
+  ref:D('right',[[true,L('右轉前進')],[false,D('front',[[true,L('前進')],[false,D('left',[[true,L('左轉前進')],[false,L('停止')]])]])]]),
+  hints:['規則有先後順序，最優先的是「右邊能走嗎？」。','右邊不能走，才問前方；前方也不能走，才問左邊。','三個方向都能走的時候，一定要往右。'],
+  focus:'判斷優先順序；分清楚「每次判斷」與「重複執行」。'},
+ {id:'t10',title:'設計自己的校園決策樹',stars:5,kind:'開放題',level:'design',
+  story:'自己選一個校園問題（例如：午休活動安排、圖書館借閱、下課要不要去戶外），設計你的決策樹。',
+  goal:'至少 3 個判斷節點、至少 4 個葉節點、至少 2 層判斷；每條線都要有條件；寫至少 5 筆測試，其中 1 筆是邊界或特殊情況。',
+  vars:[],outputs:[],tests:[],
+  hints:['先想清楚：要判斷的事情是什麼？會有哪些結果？','列出會影響結果的條件，在「變數」分頁一個一個加進去。','畫完後寫測試：給一組情況，寫下你覺得應該出現的結果，看你的樹有沒有走對。'],
+  focus:'結構完整 30%、條件清楚不矛盾 30%、自建測試通過 25%、設計說明 15%；情境合理性需要老師檢視。'},
+];
+TQ.forEach(q=>{ if(q.ref){ q.refCount={d:0,l:0}; (function walk(n){ if(n.o){q.refCount.l++;return} q.refCount.d++; n.br.forEach(b=>walk(b[1])) })(q.ref); } });
+
+/* ---------- 狀態 ---------- */
+let T=null; // 目前題目的作答狀態
+const qById=id=>TQ.find(q=>q.id===id);
+const curQ=()=>qById(T.qid);
+const varsOf=()=> curQ().level==='design' ? T.design.vars : curQ().vars;
+const outsOf=()=> curQ().level==='design' ? T.design.outputs : curQ().outputs;
+const varBy=k=>varsOf().find(v=>v.key===k);
+function saveT(){ try{ store.set('tree_'+T.qid, {nodes:T.nodes,edges:T.edges,tray:T.tray,seq:T.seq,hints:T.hints,explain:T.explain,design:T.design,refSeen:T.refSeen}); }catch(e){} }
+
+function freshState(q){
+  const s={qid:q.id,nodes:[],edges:[],tray:[],seq:1,hints:0,explain:'',design:null,refSeen:false};
+  if(q.level==='skeleton'){
+    s.nodes.push({id:'n1',kind:'root',var:q.vars[0].key,out:null,x:330,y:40});
+    const n=q.refCount.l; for(let i=0;i<n;i++) s.nodes.push({id:'n'+(i+2),kind:'leaf',var:null,out:null,x:90+i*(560/(n-1||1))*1.0,y:260});
+    s.seq=n+2;
+  } else if(q.level==='cards'){
+    let i=1; const cards=[];
+    (function walk(n,isRoot){ if(n.o){cards.push({id:'c'+(i++),kind:'leaf',out:n.o});return} cards.push({id:'c'+(i++),kind:isRoot?'root':'decision',var:n.v}); n.br.forEach(b=>walk(b[1],false)) })(q.ref,true);
+    s.tray=[cards[0],...shuffle(cards.slice(1))]; s.seq=i+1;
+  } else if(q.level==='design'){
+    s.design={title:'',desc:'',vars:[
+      {key:'v1',name:'天氣',label:'今天天氣如何？',type:'enum',values:['晴天','陰天','下雨'],min:0,max:100,unit:'',t:'是',f:'否'}],
+      outputs:['去操場','留在教室'],tests:[]};
+  }
+  return s;
+}
+function loadT(q){
+  const saved=store.get('tree_'+q.id,null);
+  T=Object.assign(freshState(q), saved||{});
+  T.qid=q.id; T.undo=[]; T.redo=[]; T.scale=T.scale||1; T.sel=null; T.selEdge=null; T.linkFrom=null; T.hl=null; T.result=null; T.panel=null;
+  if(q.level==='design'&&!T.design) T.design=freshState(q).design;
+}
+
+/* ---------- 條件 ---------- */
+const OPS={'<':'<','<=':'≤','>':'>','>=':'≥','==':'=','!=':'≠'};
+function condMatch(v,cond,val){
+  if(!cond) return false;
+  if(v.type==='bool') return cond.op==='is' && cond.v===val;
+  if(v.type==='enum') return cond.op==='in' && cond.vals.includes(val);
+  switch(cond.op){case '<':return val<cond.v;case '<=':return val<=cond.v;case '>':return val>cond.v;case '>=':return val>=cond.v;case '==':return val===cond.v;case '!=':return val!==cond.v;case 'between':return val>=cond.lo&&val<=cond.hi}
+  return false;
+}
+function condLabel(v,cond){
+  if(!v||!cond) return '？';
+  if(v.type==='bool') return cond.v?v.t:v.f;
+  if(v.type==='enum') return cond.vals.join('、');
+  if(cond.op==='between') return `${cond.lo}～${cond.hi}${v.unit||''}`;
+  return `${OPS[cond.op]} ${cond.v}${v.unit||''}`;
+}
+function valText(v,val){ if(v.type==='bool') return val?v.t:v.f; if(v.type==='int') return val+(v.unit||''); return val; }
+function describe(input,vars){ return vars.filter(v=>input[v.key]!==undefined).map(v=>`${v.name}：${valText(v,input[v.key])}`).join('、'); }
+
+/* ---------- 走一遍樹 ---------- */
+function route(tree,input,vars){
+  const vb=k=>vars.find(v=>v.key===k);
+  const roots=tree.nodes.filter(n=>n.kind==='root');
+  if(roots.length!==1) return {err:'noroot',path:[],edges:[],steps:[]};
+  let n=roots[0]; const path=[n.id], edges=[], steps=[]; const seen=new Set();
+  for(let guard=0;guard<60;guard++){
+    if(seen.has(n.id)) return {err:'loop',node:n,path,edges,steps};
+    seen.add(n.id);
+    if(n.kind==='leaf'){ if(!n.out) return {err:'noout',node:n,path,edges,steps}; return {out:n.out,path,edges,steps}; }
+    const v=vb(n.var); if(!v) return {err:'novar',node:n,path,edges,steps};
+    const val=input[v.key]; const outs=tree.edges.filter(e=>e.from===n.id);
+    const m=outs.filter(e=>condMatch(v,e.cond,val));
+    if(m.length===0) return {err:'stuck',node:n,v,val,path,edges,steps};
+    if(m.length>1) return {err:'overlap',node:n,v,val,matches:m,path,edges,steps};
+    steps.push({node:n,v,val,edge:m[0]});
+    edges.push(m[0].id); n=tree.nodes.find(x=>x.id===m[0].to); if(!n) return {err:'stuck',path,edges,steps}; path.push(n.id);
+  }
+  return {err:'loop',path,edges,steps};
+}
+function domainValues(v,tree,extraTests){
+  if(v.type==='bool') return [true,false];
+  if(v.type==='enum') return v.values.slice();
+  const s=new Set([v.min,v.max]);
+  const add=c=>{[c-1,c,c+1].forEach(x=>{if(x>=v.min&&x<=v.max)s.add(x)})};
+  (v.crit||[]).forEach(add);
+  tree.edges.forEach(e=>{const from=tree.nodes.find(n=>n.id===e.from); if(!from||from.var!==v.key||!e.cond) return; if(e.cond.op==='between'){add(e.cond.lo);add(e.cond.hi)} else if(typeof e.cond.v==='number') add(e.cond.v)});
+  (extraTests||[]).forEach(t=>{ if(typeof t[v.key]==='number') add(t[v.key]) });
+  return [...s].sort((a,b)=>a-b);
+}
+function allInputs(vars,tree,tests){
+  let rows=[{}];
+  vars.forEach(v=>{const vals=domainValues(v,tree,tests);const nr=[];rows.forEach(r=>vals.forEach(x=>nr.push({...r,[v.key]:x})));rows=nr});
+  return rows.length>6000?rows.slice(0,6000):rows;
+}
+
+/* ---------- 結構檢查 ---------- */
+function structIssues(tree,vars){
+  const iss=[]; const nm=n=>n.kind==='leaf'?(n.out||'沒選結果的葉節點'):(vars.find(v=>v.key===n.var)||{}).label||'沒選問題的決策節點';
+  const roots=tree.nodes.filter(n=>n.kind==='root');
+  if(!roots.length) iss.push({msg:'還沒有根節點。先放一個「根節點」，當作第一個要問的問題。',nodes:[]});
+  if(roots.length>1) iss.push({msg:'根節點只能有一個。',nodes:roots.map(n=>n.id)});
+  tree.nodes.forEach(n=>{
+    const inn=tree.edges.filter(e=>e.to===n.id), out=tree.edges.filter(e=>e.from===n.id);
+    if(n.kind!=='root'&&inn.length===0) iss.push({msg:`「${nm(n)}」還沒接到樹上，沒有線連進來。`,nodes:[n.id]});
+    if(n.kind!=='leaf'&&!n.var) iss.push({msg:'有一個決策節點還沒選「要問什麼問題」。點它一下，選「改問題」。',nodes:[n.id]});
+    if(n.kind!=='leaf'&&n.var&&out.length<2) iss.push({msg:`「${nm(n)}」只有 ${out.length} 條分支。判斷至少要有兩條路。`,nodes:[n.id]});
+    if(n.kind==='leaf'&&!n.out) iss.push({msg:'有一個葉節點還沒選結果。點它一下，選「改結果」。',nodes:[n.id]});
+  });
+  return iss;
+}
+
+/* ---------- 檢查答案 ---------- */
+function grade(){
+  const q=curQ(); const vars=varsOf(); const tree={nodes:T.nodes,edges:T.edges};
+  const res={issues:[],counter:null,bad:{nodes:new Set(),edges:new Set()},passed:0,total:0,warn:[]};
+  const si=structIssues(tree,vars); si.forEach(i=>{res.issues.push(i.msg);i.nodes.forEach(id=>res.bad.nodes.add(id))});
+  const isDesign=q.level==='design';
+  const tests=isDesign?T.design.tests.map(t=>t.input):q.tests;
+  const expect=isDesign?(inp=>{const t=T.design.tests.find(x=>x.input===inp);return t?t.expect:null}):q.rule;
+  // 測試案例
+  let firstWrong=null;
+  tests.forEach(inp=>{ res.total++; const r=route(tree,inp,vars); const exp=expect(inp); if(!r.err&&r.out===exp) res.passed++; else if(!firstWrong) firstWrong={inp,r,exp}; });
+  // 窮舉（只有沒有結構問題才做）
+  let stuck=null,overlap=null,wrong=null; const used=new Set();
+  if(!si.length){
+    const inputs=allInputs(vars,tree,tests);
+    for(const inp of inputs){
+      const r=route(tree,inp,vars); r.edges.forEach(e=>used.add(e));
+      if(r.err==='stuck'&&!stuck) stuck={inp,r};
+      else if(r.err==='overlap'&&!overlap) overlap={inp,r};
+      else if(!r.err&&!isDesign&&r.out!==q.rule(inp)&&!wrong) wrong={inp,r,exp:q.rule(inp)};
+    }
+    if(stuck){ const v=stuck.r.v; res.issues.push(`「${v.label}」少了一條分支：${v.name}＝${valText(v,stuck.r.val)} 的時候沒有路可以走。`); res.bad.nodes.add(stuck.r.node.id); }
+    if(overlap){ const v=overlap.r.v; res.issues.push(`「${v.label}」的條件重疊了：${v.name}＝${valText(v,overlap.r.val)} 同時符合「${overlap.r.matches.map(e=>condLabel(v,e.cond)).join('」和「')}」。`); res.bad.nodes.add(overlap.r.node.id); overlap.r.matches.forEach(e=>res.bad.edges.add(e.id)); }
+    T.edges.forEach(e=>{ if(!used.has(e.id)&&!res.bad.edges.has(e.id)){ const f=T.nodes.find(n=>n.id===e.from); const v=f&&varBy(f.var); if(v) res.warn.push(`「${v.label}」的「${condLabel(v,e.cond)}」這條線永遠不會被走到，檢查條件是不是重複或不可能發生。`); } });
+  }
+  // 反例：先用題目測試，再用窮舉
+  const cw = firstWrong && !firstWrong.r.err ? firstWrong : (wrong||null);
+  if(cw){ res.counter=`例如「${describe(cw.inp,vars)}」應該是「${cw.exp}」，但你的樹走到「${cw.r.out}」。`; cw.r.edges.forEach(e=>res.bad.edges.add(e)); const last=cw.r.path[cw.r.path.length-1]; if(last) res.bad.nodes.add(last); }
+  else if(firstWrong && isDesign){ const r=firstWrong.r; res.counter = r.err ? `你的測試「${describe(firstWrong.inp,vars)}」走不到任何結果。` : `你的測試「${describe(firstWrong.inp,vars)}」期望「${firstWrong.exp}」，但樹走到「${r.out}」。`; }
+  if(!isDesign && !cw && !stuck && !overlap && !si.length && res.passed<res.total) res.issues.push('有測試情況走不到結果。');
+  res.ok = !isDesign && !res.issues.length && !res.counter && res.passed===res.total;
+  if(isDesign) designScore(res,tree,vars,si,stuck,overlap);
+  return res;
+}
+function depthOf(tree){
+  const root=tree.nodes.find(n=>n.kind==='root'); if(!root) return 0;
+  let best=0; (function walk(id,d,seen){ const n=tree.nodes.find(x=>x.id===id); if(!n||seen.has(id)) return; seen.add(id); if(n.kind!=='leaf'){ best=Math.max(best,d+1); tree.edges.filter(e=>e.from===id).forEach(e=>walk(e.to,d+1,seen)) } })(root.id,0,new Set());
+  return best;
+}
+function designScore(res,tree,vars,si,stuck,overlap){
+  const d=T.design; const dec=tree.nodes.filter(n=>n.kind!=='leaf').length, leaves=tree.nodes.filter(n=>n.kind==='leaf').length, depth=depthOf(tree);
+  const req=[]; if(dec<3) req.push(`判斷節點至少 3 個（現在 ${dec} 個）`); if(leaves<4) req.push(`葉節點至少 4 個（現在 ${leaves} 個）`); if(depth<2) req.push(`至少 2 層判斷（現在 ${depth} 層）`);
+  const nt=d.tests.length, nb=d.tests.filter(t=>t.boundary).length;
+  if(nt<5) req.push(`測試至少 5 筆（現在 ${nt} 筆）`); if(nb<1) req.push('至少 1 筆測試要勾「邊界／特殊情況」');
+  if(!d.title.trim()) req.push('還沒寫情境標題');
+  const sStruct=Math.max(0,30-6*(si.length+req.filter(r=>!r.startsWith('測試')&&!r.startsWith('至少 1 筆')).length));
+  const sCond=si.length?0:30-(stuck?15:0)-(overlap?15:0);
+  const sTest=nt?Math.round(25*(res.passed/nt)*Math.min(1,nt/5)*(nb?1:0.8)):0;
+  const len=d.desc.trim().length; const sDesc=len>=30?15:len>=10?8:0;
+  res.design={sStruct,sCond,sTest,sDesc,total:sStruct+sCond+sTest+sDesc,req};
+  res.issues=res.issues.concat(req.map(r=>r+'。'));
+  if(len<30) res.issues.push('「設計說明」至少寫 30 個字，說明你的情境和為什麼這樣判斷。');
+  res.ok = res.design.total>=85 && !req.length && !si.length && !stuck && !overlap && res.passed===nt;
+}
+
+/* ---------- 版面 ---------- */
+function nodeDims(n){
+  const txt=nodeText(n); const w=Math.max(130,Math.min(260,textW(txt)+40)); return {w,h:n.kind==='leaf'?54:62};
+}
+function nodeText(n){
+  if(n.kind==='leaf') return n.out||'（點我選結果）';
+  const v=n.var&&varBy(n.var); return v?v.label:'（點我選問題）';
+}
+const KIND_ZH={root:'根節點',decision:'決策節點',leaf:'葉節點'};
+function layoutTree(nodes,edges){
+  const root=nodes.find(n=>n.kind==='root'); if(!root) return;
+  let slot=0; const placed=new Set(); const X={};
+  (function walk(id,d){ const n=nodes.find(x=>x.id===id); if(!n||placed.has(id)) return; placed.add(id);
+    const kids=edges.filter(e=>e.from===id).map(e=>e.to);
+    n.y=30+d*130;
+    if(!kids.length){ X[id]=slot++; } else { kids.forEach(k=>walk(k,d+1)); const xs=kids.filter(k=>X[k]!=null).map(k=>X[k]); X[id]=xs.length?(Math.min(...xs)+Math.max(...xs))/2:slot++; }
+  })(root.id,0);
+  nodes.forEach(n=>{ if(X[n.id]!=null){ const {w}=nodeDims(n); n.x=40+X[n.id]*200+90-w/2; } });
+  let ox=40; const maxY=Math.max(...nodes.filter(n=>placed.has(n.id)).map(n=>n.y));
+  nodes.filter(n=>!placed.has(n.id)).forEach(n=>{n.x=ox;n.y=maxY+150;ox+=nodeDims(n).w+30});
+}
+function treeFromRef(ref){
+  const nodes=[],edges=[]; let i=1;
+  (function walk(n,isRoot){ const id='r'+(i++); if(n.o){nodes.push({id,kind:'leaf',out:n.o});return id}
+    nodes.push({id,kind:isRoot?'root':'decision',var:n.v}); n.br.forEach(([c,child])=>{const cid=walk(child,false);edges.push({id:'e'+(i++),from:id,to:cid,cond:C(c)})}); return id; })(ref,true);
+  layoutTree(nodes,edges); return {nodes,edges};
+}
+
+/* ---------- SVG ---------- */
+function edgeGeom(a,b){
+  const da=nodeDims(a), db=nodeDims(b);
+  const x1=a.x+da.w/2,y1=a.y+da.h,x2=b.x+db.w/2,y2=b.y;
+  const my=(y1+y2)/2; const d=`M${x1} ${y1} C${x1} ${my},${x2} ${my},${x2} ${y2}`;
+  return {d,mx:(x1+x2)/2,my,x1,y1,x2,y2};
+}
+function svgTree(tree,opt={}){
+  const hl=opt.hl||{nodes:new Set(),edges:new Set()}, bad=opt.bad||{nodes:new Set(),edges:new Set()}, vb=k=>(opt.vars||varsOf()).find(v=>v.key===k);
+  let maxX=600,maxY=360;
+  tree.nodes.forEach(n=>{const d=nodeDims(n);maxX=Math.max(maxX,n.x+d.w+60);maxY=Math.max(maxY,n.y+d.h+60)});
+  const sc=opt.scale||1;
+  const edges=tree.edges.map(e=>{
+    const a=tree.nodes.find(n=>n.id===e.from), b=tree.nodes.find(n=>n.id===e.to); if(!a||!b) return '';
+    const g=edgeGeom(a,b); const v=vb(a.var); const lab=condLabel(v,e.cond);
+    const isH=hl.edges.has(e.id), isB=bad.edges.has(e.id), isS=opt.selEdge===e.id;
+    const col=isH?'#E0B35C':isB?'#E07A6B':'#A89E92'; const lw=textW(lab,13)+18;
+    return `<g class="te" data-eid="${e.id}" ${opt.interactive?'style="cursor:pointer"':''}>
+      ${opt.interactive?`<path d="${g.d}" fill="none" stroke="transparent" stroke-width="16"/>`:''}
+      ${isS?`<path d="${g.d}" fill="none" stroke="#C1B2A3" stroke-width="8" opacity=".35"/>`:''}
+      <path d="${g.d}" fill="none" stroke="${col}" stroke-width="${isH?4:2}" marker-end="url(#tarr)"/>
+      <rect x="${g.mx-lw/2}" y="${g.my-12}" width="${lw}" height="24" rx="12" fill="#262320" stroke="${isH?'#E0B35C':isB?'#E07A6B':'#C49AB8'}" stroke-width="1.5"/>
+      <text x="${g.mx}" y="${g.my}" text-anchor="middle" dominant-baseline="central" font-size="13" font-weight="700" fill="${isB?'#F0B3A9':'#DCC0D3'}" style="pointer-events:none">${esc(lab)}</text></g>`;
+  }).join('');
+  const nodes=tree.nodes.map(n=>{
+    const {w,h}=nodeDims(n); const isH=hl.nodes.has(n.id), isB=bad.nodes.has(n.id), isS=opt.sel===n.id, isL=opt.linkFrom===n.id;
+    const base={root:['#C1B2A3','#2E2A26'],decision:['#C49AB8','#332733'],leaf:['#9DBF9E','#27342A']}[n.kind];
+    const stroke=isH?'#E0B35C':isB?'#E07A6B':base[0]; const sw=isH?4:n.kind==='root'?3:2;
+    const rx=n.kind==='leaf'?h/2:10; const txt=nodeText(n); const empty=(n.kind==='leaf'&&!n.out)||(n.kind!=='leaf'&&!n.var);
+    const v=n.kind!=='leaf'&&n.var&&vb(n.var); const txtS=n.kind==='leaf'?(n.out||'（點我選結果）'):(v?v.label:'（點我選問題）');
+    return `<g class="tn" data-nid="${n.id}" ${opt.interactive?`tabindex="0" role="button" aria-label="${KIND_ZH[n.kind]}：${esc(txtS)}" style="cursor:grab"`:''}>
+      ${isS||isL?`<rect x="${n.x-6}" y="${n.y-6}" width="${w+12}" height="${h+12}" rx="${rx+6}" fill="none" stroke="${isL?'#8FA9C9':'#C1B2A3'}" stroke-width="2" stroke-dasharray="5 4"/>`:''}
+      <rect x="${n.x}" y="${n.y}" width="${w}" height="${h}" rx="${rx}" fill="${isB?'#3A2724':base[1]}" stroke="${stroke}" stroke-width="${sw}"/>
+      <text x="${n.x+w/2}" y="${n.y+16}" text-anchor="middle" font-size="11" fill="${base[0]}" style="pointer-events:none">${KIND_ZH[n.kind]}</text>
+      <text x="${n.x+w/2}" y="${n.y+h/2+9}" text-anchor="middle" dominant-baseline="central" font-size="14" fill="${empty?'#A89E92':'#F3EEE7'}" style="pointer-events:none">${esc(txtS.length>16?txtS.slice(0,15)+'…':txtS)}</text>
+      ${opt.interactive&&n.kind!=='leaf'?`<circle class="tp" cx="${n.x+w/2}" cy="${n.y+h}" r="8" fill="#1C1A17" stroke="#C1B2A3" stroke-width="2" style="cursor:crosshair"/>`:''}
+    </g>`;
+  }).join('');
+  const temp=opt.temp?`<path d="M${opt.temp.x1} ${opt.temp.y1} L${opt.temp.x2} ${opt.temp.y2}" stroke="#8FA9C9" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#tarr)" style="pointer-events:none"/>`:'';
+  return `<svg xmlns="http://www.w3.org/2000/svg" ${opt.id?`id="${opt.id}"`:''} width="${maxX*sc}" height="${maxY*sc}" viewBox="0 0 ${maxX} ${maxY}" style="font-family:'LXGW WenKai TC','PingFang TC','Microsoft JhengHei',system-ui,sans-serif;display:block;touch-action:none">
+    <defs><marker id="tarr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9z" fill="context-stroke"/></marker></defs>
+    ${opt.bg?`<rect width="${maxX}" height="${maxY}" fill="#1C1A17"/>`:''}${edges}${nodes}${temp}</svg>`;
+}
+
+/* ---------- 首頁清單 ---------- */
+function homeList(){
+  return `<div style="display:flex;flex-direction:column;gap:12px">
+    <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap"><h2>決策樹：選一題</h2><span class="small muted">共 10 題，★ 越多越難 · 看懂決策路徑 → 完成分支 → 多重決策 → 自己設計</span></div>
+    <div class="grid4" style="grid-template-columns:repeat(5,minmax(0,1fr))">${TQ.map((q,i)=>`<button class="qcard" data-q="${i}"><span class="t">${i+1} ${esc(q.title)}</span><span style="display:flex;gap:6px;flex-wrap:wrap"><span class="tag dec" aria-label="難度 ${q.stars} 顆星">${'★'.repeat(q.stars)}</span>${S.done['tree:'+q.id]?'<span class="tag ok">已過關</span>':''}</span></button>`).join('')}</div></div>`;
+}
+const TQcount=TQ.length;
+
+/* ---------- 畫面 ---------- */
+function view(){
+  const q=curQ(); const i=TQ.indexOf(q);
+  const mid=`<span class="sub">決策樹 ${i+1}／${TQ.length} · ${esc(q.title)}</span><span class="chip mode" aria-label="難度 ${q.stars} 顆星">${'★'.repeat(q.stars)} ${esc(q.kind)}</span>`;
+  const right=`<button class="sm" data-t="undo" aria-label="復原">復原</button><button class="sm" data-t="redo" aria-label="重做">重做</button><button class="sm" data-t="layout">整理排列</button><button class="sm" data-t="zoomout" aria-label="縮小">－</button><button class="sm" data-t="zoomin" aria-label="放大">＋</button><button class="sm" data-t="reset">重新作答</button>
+    <span style="width:1px;height:24px;background:var(--border);margin:0 2px"></span><button class="sm" data-t="test">測試你的樹</button><button class="primary" data-t="check">檢查答案</button>`;
+  return topbar(mid,right)+`<div class="work">
+    <div class="tray" style="width:300px;gap:12px" id="tpanel">${leftPanel()}</div>
+    <div class="cv" id="tcv"><div id="tscroll" style="position:absolute;inset:0;overflow:auto"><div id="tsvgwrap"></div></div><div class="empty" id="tempty" style="display:none">從左邊拖一個「根節點」進來<br><span class="small">或點一下左邊的節點，它會自動放到畫布上</span></div><div id="tlinkbar" class="resbar" style="display:none;top:16px;bottom:auto;left:16px;right:auto;border-color:var(--process)"></div></div>
+    ${q.maze?`<div class="tray" style="width:380px;border-right:0;border-left:1px solid var(--border)" id="mazepanel"></div>`:''}
+  </div>`;
+}
+function leftPanel(){
+  const q=curQ(); const lv=q.level;
+  const vars=varsOf(), outs=outsOf();
+  const sec=(t,b)=>`<div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:13px;font-weight:700;color:var(--muted)">${t}</span>${b}</div>`;
+  let trayHtml='';
+  if(lv==='cards') trayHtml=T.tray.length?T.tray.map(c=>`<div class="tnode ${c.kind==='leaf'?'terminal':c.kind==='root'?'process':'decision'}" data-titem="${c.id}" tabindex="0" role="button" aria-label="放上${KIND_ZH[c.kind]}" style="height:auto;min-height:44px;padding:6px 10px;flex-direction:column;gap:0;${c.kind==='root'?'border-color:#C1B2A3;background:#2E2A26;border-width:3px':''}"><span class="small" style="opacity:.75">${KIND_ZH[c.kind]}</span><span>${esc(c.kind==='leaf'?c.out:(vars.find(v=>v.key===c.var)||{}).label)}</span></div>`).join(''):'<div class="small faint" style="padding:10px;border:1px dashed var(--border-strong);border-radius:10px">卡片都放上去了。點畫布上的節點可以放回來。</div>';
+  else if(lv==='free'||lv==='design'){ const hasRoot=T.nodes.some(n=>n.kind==='root');
+    trayHtml=[['root','根節點','第一個問題，只能有一個'],['decision','決策節點','接在下面的問題'],['leaf','葉節點','最後的結果']].map(([k,n,d])=>`<div class="tnode ${k==='leaf'?'terminal':'decision'}" data-titem="${k}" tabindex="0" role="button" aria-label="放上${n}" style="height:auto;min-height:44px;padding:6px 10px;flex-direction:column;${k==='root'?'border-color:#C1B2A3;background:#2E2A26;border-width:3px;':''}${k==='root'&&hasRoot?'opacity:.4;pointer-events:none':''}"><span>${n}</span><span class="small" style="opacity:.75">${k==='root'&&hasRoot?'已經放了':d}</span></div>`).join(''); }
+  const hints=q.hints.slice(0,T.hints).map((h,i)=>`<div class="small" style="background:rgba(193,178,163,.1);border:1px solid rgba(193,178,163,.35);border-radius:10px;padding:8px 10px;line-height:1.6"><b>提示 ${i+1}</b>　${esc(h)}</div>`).join('');
+  const info = lv==='design' ? designPanel() : `
+    <div style="display:flex;flex-direction:column;gap:6px"><p style="margin:0;font-size:15px;line-height:1.7">${esc(q.story)}</p>
+    <p class="small" style="margin:0;color:var(--link);line-height:1.6">目標：${esc(q.goal)}</p>${q.note?`<p class="small muted" style="margin:0;line-height:1.6">※ ${esc(q.note)}</p>`:''}</div>
+    ${sec('可以用的問題（條件）',`<div style="display:flex;flex-wrap:wrap;gap:6px">${vars.map(v=>`<span class="tag dec" style="font-size:13px">${esc(v.label)}</span>`).join('')}</div>`)}
+    ${sec('可以用的結果',`<div style="display:flex;flex-wrap:wrap;gap:6px">${outs.map(o=>`<span class="tag ok" style="font-size:13px">${esc(o)}</span>`).join('')}</div>`)}
+    ${q.explain?sec('說明你的判斷順序',`<textarea id="texplain" rows="3" style="font-family:inherit;font-size:14px;background:var(--bg);color:var(--text);border:1px solid var(--border-strong);border-radius:8px;padding:8px" placeholder="例如：我先問有沒有借書證，因為……">${esc(T.explain||'')}</textarea>`):''}`;
+  return `${info}
+    ${lv!=='skeleton'?sec(lv==='cards'?'節點卡片（拖或點到畫布）':'節點（拖或點到畫布）',`<div style="display:flex;flex-direction:column;gap:8px">${trayHtml}</div>`):`<p class="small muted" style="margin:0;line-height:1.6">骨架已經放好了：從根節點下面的小圓點拉線到葉節點，選條件；再點葉節點選結果。</p>`}
+    <div style="display:flex;flex-direction:column;gap:8px">${hints}
+      <div style="display:flex;gap:8px;flex-wrap:wrap">${T.hints<3?`<button class="sm" data-t="hint">提示（${T.hints+1}/3）</button>`:''}${q.ref||TEACHER()?`<button class="sm" data-t="ref">${q.level==='design'?'評量重點':'查看參考解法'}</button>`:''}</div></div>
+    ${TEACHER()?`<div class="small" style="border:1px dashed var(--warning);border-radius:10px;padding:8px 10px;line-height:1.6;color:var(--warning)">老師模式：評量重點　${esc(q.focus)}</div>`:''}
+    <div class="tips"><b>怎麼操作</b><span>拖：從節點下面的小圓點拉到另一個節點，就能連線。</span><span>點：點一下節點 →「從這裡連線」→ 再點要接的節點。</span><span>點一下線可以改條件或刪除。Tab 可以選節點、Enter 打開選單、方向鍵移動。</span></div>`;
+}
+
+/* ---------- 開放題：設計面板 ---------- */
+function designPanel(){
+  const d=T.design; const tab=T.dtab||'info';
+  const tabs=[['info','情境'],['vars','變數'],['outs','結果'],['tests','測試']];
+  const inp=(id,val,ph,w='100%')=>`<input data-d="${id}" value="${esc(val)}" placeholder="${ph}" style="width:${w};min-height:34px;font-size:14px">`;
+  let body='';
+  if(tab==='info') body=`<label class="small muted">情境標題</label>${inp('title',d.title,'例如：下課要不要去戶外')}<label class="small muted">設計說明（至少 30 字）</label><textarea data-d="desc" rows="5" style="font-family:inherit;font-size:14px;background:var(--bg);color:var(--text);border:1px solid var(--border-strong);border-radius:8px;padding:8px" placeholder="說明你的情境、有哪些條件、為什麼這樣排順序">${esc(d.desc)}</textarea><span class="small faint">${d.desc.trim().length} 字</span>`;
+  if(tab==='vars') body=d.vars.map((v,i)=>`<div style="border:1px solid var(--border);border-radius:10px;padding:8px;display:flex;flex-direction:column;gap:6px">
+      <div style="display:flex;gap:6px">${inp('v.'+i+'.name',v.name,'短名稱','40%')}<select data-d="v.${i}.type" style="flex:1;min-height:34px;font-size:13px"><option value="bool" ${v.type==='bool'?'selected':''}>是非</option><option value="enum" ${v.type==='enum'?'selected':''}>選項</option><option value="int" ${v.type==='int'?'selected':''}>數字</option></select><button class="sm" data-dv="del.${i}" aria-label="刪除變數">刪</button></div>
+      ${inp('v.'+i+'.label',v.label,'節點上的問題，例如：有下雨嗎？')}
+      ${v.type==='bool'?`<div style="display:flex;gap:6px">${inp('v.'+i+'.t',v.t,'是','50%')}${inp('v.'+i+'.f',v.f,'否','50%')}</div>`:v.type==='enum'?inp('v.'+i+'.values',v.values.join('、'),'選項用「、」分開，例如：晴天、陰天、下雨'):`<div style="display:flex;gap:6px;align-items:center">${inp('v.'+i+'.min',v.min,'最小','30%')}～${inp('v.'+i+'.max',v.max,'最大','30%')}${inp('v.'+i+'.unit',v.unit,'單位','25%')}</div>`}</div>`).join('')+`<button class="sm" data-dv="add">＋ 新增變數</button>`;
+  if(tab==='outs') body=d.outputs.map((o,i)=>`<div style="display:flex;gap:6px">${inp('o.'+i,o,'結果')}<button class="sm" data-dv="odel.${i}" aria-label="刪除結果">刪</button></div>`).join('')+`<button class="sm" data-dv="oadd">＋ 新增結果</button>`;
+  if(tab==='tests') body=d.tests.map((t,i)=>`<div style="border:1px solid var(--border);border-radius:10px;padding:8px;display:flex;flex-direction:column;gap:6px"><b class="small">測試 ${i+1}</b>
+      ${d.vars.map(v=>`<div style="display:flex;gap:6px;align-items:center"><span class="small" style="width:70px">${esc(v.name)}</span>${v.type==='bool'?`<select data-d="t.${i}.${v.key}" style="flex:1;min-height:32px"><option value="true" ${t.input[v.key]===true?'selected':''}>${esc(v.t)}</option><option value="false" ${t.input[v.key]===false?'selected':''}>${esc(v.f)}</option></select>`:v.type==='enum'?`<select data-d="t.${i}.${v.key}" style="flex:1;min-height:32px">${v.values.map(x=>`<option ${t.input[v.key]===x?'selected':''}>${esc(x)}</option>`).join('')}</select>`:`<input data-d="t.${i}.${v.key}" type="number" value="${t.input[v.key]??v.min}" min="${v.min}" max="${v.max}" style="flex:1;min-height:32px">`}</div>`).join('')}
+      <div style="display:flex;gap:6px;align-items:center"><span class="small" style="width:70px">應該是</span><select data-d="t.${i}.expect" style="flex:1;min-height:32px">${d.outputs.map(o=>`<option ${t.expect===o?'selected':''}>${esc(o)}</option>`).join('')}</select></div>
+      <label class="small" style="display:flex;gap:6px;align-items:center"><input type="checkbox" data-d="t.${i}.boundary" ${t.boundary?'checked':''} style="min-height:0">這是邊界／特殊情況</label><button class="sm" data-dv="tdel.${i}">刪除這筆</button></div>`).join('')+`<button class="sm" data-dv="tadd">＋ 新增測試</button>`;
+  return `<p style="margin:0;font-size:15px;line-height:1.7">${esc(curQ().story)}</p><p class="small" style="margin:0;color:var(--link);line-height:1.6">目標：${esc(curQ().goal)}</p>
+    <div style="display:flex;gap:4px">${tabs.map(([k,n])=>`<button class="tab sm ${k===tab?'on':''}" data-dtab="${k}" style="border-radius:999px;${k===tab?'background:var(--primary);color:var(--on-primary)':''}">${n}</button>`).join('')}</div>
+    <div style="display:flex;flex-direction:column;gap:8px">${body}</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap"><button class="sm" data-t="png">匯出 PNG</button><button class="sm" data-t="json">匯出 JSON</button></div>`;
+}
+function onDesignChange(el){
+  const d=T.design; const p=el.dataset.d.split('.'); let val=el.type==='checkbox'?el.checked:el.value;
+  if(p[0]==='title'||p[0]==='desc'){ d[p[0]]=val; }
+  else if(p[0]==='v'){ const v=d.vars[+p[1]]; const k=p[2];
+    if(k==='values') v.values=val.split(/[、,，]/).map(s=>s.trim()).filter(Boolean);
+    else if(k==='min'||k==='max') v[k]=parseInt(val)||0;
+    else v[k]=val;
+    if(k==='type'){ if(!v.values.length) v.values=['選項一','選項二']; T.edges=T.edges.filter(e=>{const f=T.nodes.find(n=>n.id===e.from);return !f||f.var!==v.key}); }
+    d.tests.forEach(t=>{ if(v.type==='bool'&&typeof t.input[v.key]!=='boolean') t.input[v.key]=true; if(v.type==='enum'&&!v.values.includes(t.input[v.key])) t.input[v.key]=v.values[0]; if(v.type==='int'&&typeof t.input[v.key]!=='number') t.input[v.key]=v.min; });
+  }
+  else if(p[0]==='o'){ const old=d.outputs[+p[1]]; d.outputs[+p[1]]=val; T.nodes.forEach(n=>{if(n.out===old)n.out=val}); d.tests.forEach(t=>{if(t.expect===old)t.expect=val}); }
+  else if(p[0]==='t'){ const t=d.tests[+p[1]]; const k=p[2];
+    if(k==='expect') t.expect=val; else if(k==='boundary') t.boundary=val;
+    else { const v=d.vars.find(x=>x.key===k); t.input[k]= v.type==='bool'?val==='true': v.type==='int'?(parseInt(val)||0):val; } }
+  saveT(); redrawPanel(); drawTree();
+}
+function onDesignBtn(a){
+  const d=T.design; const [k,i]=a.split('.');
+  if(k==='add'){ const key='v'+(Math.max(0,...d.vars.map(v=>+v.key.slice(1)))+1); d.vars.push({key,name:'條件'+(d.vars.length+1),label:'新的問題？',type:'bool',t:'是',f:'否',values:['選項一','選項二'],min:0,max:100,unit:''}); d.tests.forEach(t=>t.input[key]=true); }
+  if(k==='del'){ const v=d.vars[+i]; d.vars.splice(+i,1); T.nodes.forEach(n=>{if(n.var===v.key)n.var=null}); T.edges=T.edges.filter(e=>{const f=T.nodes.find(n=>n.id===e.from);return f&&f.var}); d.tests.forEach(t=>delete t.input[v.key]); }
+  if(k==='oadd') d.outputs.push('新的結果');
+  if(k==='odel'){ const o=d.outputs[+i]; d.outputs.splice(+i,1); T.nodes.forEach(n=>{if(n.out===o)n.out=null}); }
+  if(k==='tadd'){ const input={}; d.vars.forEach(v=>input[v.key]=v.type==='bool'?true:v.type==='enum'?v.values[0]:v.min); d.tests.push({input,expect:d.outputs[0]||'',boundary:false}); }
+  if(k==='tdel') d.tests.splice(+i,1);
+  saveT(); redrawPanel(); drawTree();
+}
+
+/* ---------- 繪圖與互動 ---------- */
+function drawTree(){
+  const wrap=$('#tsvgwrap'); if(!wrap) return;
+  const bad=T.result&&!T.result.ok?T.result.bad:null;
+  wrap.innerHTML=svgTree({nodes:T.nodes,edges:T.edges},{interactive:true,id:'tsvg',scale:T.scale,hl:T.hl||undefined,bad:bad||undefined,sel:T.sel,selEdge:T.selEdge,linkFrom:T.linkFrom,temp:T.temp});
+  const em=$('#tempty'); if(em) em.style.display=T.nodes.length?'none':'';
+  const lb=$('#tlinkbar'); if(lb){ if(T.linkFrom){lb.style.display='flex';lb.innerHTML='<span class="msg"><b>連線中</b><span>點要接過去的節點（按 Esc 取消）</span></span><button class="sm" data-t="cancellink">取消</button>'} else lb.style.display='none'; }
+  const u=$('[data-t="undo"]'); if(u) u.disabled=!T.undo.length; const r=$('[data-t="redo"]'); if(r) r.disabled=!T.redo.length;
+}
+function redrawPanel(){ const p=$('#tpanel'); if(p){ const st=p.scrollTop; p.innerHTML=leftPanel(); p.scrollTop=st; bindPanel(); } }
+function snap(){ T.undo.push(JSON.stringify({nodes:T.nodes,edges:T.edges,tray:T.tray})); if(T.undo.length>50)T.undo.shift(); T.redo=[]; T.result=null; T.hl=null; hideTRes(); }
+function changed(){ saveT(); drawTree(); }
+function undo(){ const s=T.undo.pop(); if(!s) return toast('沒有可以復原的了'); T.redo.push(JSON.stringify({nodes:T.nodes,edges:T.edges,tray:T.tray})); Object.assign(T,JSON.parse(s)); T.result=null; closeTPop(); saveT(); redrawPanel(); drawTree(); }
+function redo(){ const s=T.redo.pop(); if(!s) return toast('沒有可以重做的了'); T.undo.push(JSON.stringify({nodes:T.nodes,edges:T.edges,tray:T.tray})); Object.assign(T,JSON.parse(s)); closeTPop(); saveT(); redrawPanel(); drawTree(); }
+function pt(ev){ const svg=$('#tsvg'); const r=svg.getBoundingClientRect(); return [(ev.clientX-r.left)/T.scale,(ev.clientY-r.top)/T.scale]; }
+function nodeAt(x,y){ return [...T.nodes].reverse().find(n=>{const d=nodeDims(n);return x>=n.x&&x<=n.x+d.w&&y>=n.y&&y<=n.y+d.h}); }
+function freeSpot(){ let x=40,y=40; const cv=$('#tcv'); const W=(cv?cv.clientWidth:700)/T.scale-180;
+  for(let tries=0;tries<200;tries++){ if(!T.nodes.some(n=>Math.abs(n.x-x)<170&&Math.abs(n.y-y)<90)) return [x,y]; x+=190; if(x>W){x=40;y+=110} } return [40,40]; }
+
+let tdrag=null;
+function addFromTray(itemId,x,y){
+  const q=curQ(); snap();
+  let n;
+  if(q.level==='cards'){ const i=T.tray.findIndex(c=>c.id===itemId); const c=T.tray.splice(i,1)[0]; n={id:'n'+(T.seq++),kind:c.kind,var:c.var||null,out:c.out||null,card:c.id}; }
+  else { if(itemId==='root'&&T.nodes.some(n=>n.kind==='root')) return toast('根節點只能有一個'); n={id:'n'+(T.seq++),kind:itemId,var:null,out:null}; }
+  const d=nodeDims(n); if(x==null){ [x,y]=freeSpot(); } else { x-=d.w/2; y-=d.h/2; }
+  n.x=Math.max(0,x); n.y=Math.max(0,y); T.nodes.push(n); saveT(); redrawPanel(); drawTree();
+  return n;
+}
+function onPanelDown(ev){
+  const it=ev.target.closest('[data-titem]'); if(!it) return; ev.preventDefault();
+  tdrag={type:'tray',item:it.dataset.titem,sx:ev.clientX,sy:ev.clientY,node:null};
+}
+function onCvDown(ev){
+  if(ev.target.closest('.pop')||ev.target.closest('#tlinkbar')||ev.target.closest('.resbar')||ev.target.closest('#ttest')) return;
+  const [x,y]=pt(ev);
+  const port=ev.target.closest('.tp');
+  if(port){ ev.preventDefault(); const nid=port.closest('.tn').dataset.nid; const n=T.nodes.find(z=>z.id===nid); const d=nodeDims(n); tdrag={type:'link',from:nid}; T.temp={x1:n.x+d.w/2,y1:n.y+d.h,x2:x,y2:y}; closeTPop(); drawTree(); return; }
+  const gn=ev.target.closest('.tn');
+  if(gn){ ev.preventDefault(); const n=T.nodes.find(z=>z.id===gn.dataset.nid);
+    if(T.linkFrom){ const f=T.linkFrom; T.linkFrom=null; drawTree(); tryConnect(f,n.id,x,y); return; }
+    tdrag={type:'node',id:n.id,dx:x-n.x,dy:y-n.y,moved:false,sx:ev.clientX,sy:ev.clientY}; T.sel=n.id; T.selEdge=null; closeTPop(); drawTree(); return; }
+  const ge=ev.target.closest('.te');
+  if(ge){ T.selEdge=ge.dataset.eid; T.sel=null; drawTree(); edgeMenu(ge.dataset.eid,x,y); return; }
+  T.sel=null; T.selEdge=null; T.linkFrom=null; closeTPop(); drawTree();
+}
+function onMove(ev){
+  if(!tdrag||!T) return;
+  if(tdrag.type==='tray'){
+    if(!tdrag.node){ const cv=$('#tcv').getBoundingClientRect(); if(ev.clientX>cv.left&&ev.clientX<cv.right&&ev.clientY>cv.top&&ev.clientY<cv.bottom){ const [x,y]=pt(ev); const n=addFromTray(tdrag.item,x,y); if(!n){tdrag=null;return} tdrag={type:'node',id:n.id,dx:nodeDims(n).w/2,dy:nodeDims(n).h/2,moved:true,fromTray:true}; } }
+    return;
+  }
+  ev.preventDefault(); const [x,y]=pt(ev);
+  if(tdrag.type==='node'){ const n=T.nodes.find(z=>z.id===tdrag.id); if(!tdrag.moved){ if(Math.hypot(ev.clientX-tdrag.sx,ev.clientY-tdrag.sy)<4) return; snap(); tdrag.moved=true; } n.x=Math.max(0,x-tdrag.dx); n.y=Math.max(0,y-tdrag.dy); drawTree(); }
+  if(tdrag.type==='link'){ T.temp.x2=x; T.temp.y2=y; drawTree(); }
+}
+function onUp(ev){
+  if(!tdrag||!T) return; const d=tdrag; tdrag=null;
+  if(d.type==='tray'){ const n=addFromTray(d.item); if(n) afterAdd(n); return; }
+  if(d.type==='node'){ const n=T.nodes.find(z=>z.id===d.id); if(d.fromTray){ saveT(); afterAdd(n); return; } if(d.moved){ saveT(); return; } nodeMenu(n); return; }
+  if(d.type==='link'){ T.temp=null; const el=document.elementFromPoint(ev.clientX,ev.clientY); const g=el&&el.closest('.tn'); const [x,y]=pt(ev);
+    if(g&&g.dataset.nid!==d.from) tryConnect(d.from,g.dataset.nid,x,y); else { const n=nodeAt(x,y); if(n&&n.id!==d.from) tryConnect(d.from,n.id,x,y); else drawTree(); } }
+}
+function afterAdd(n){ if(n.kind!=='leaf'&&!n.var) varMenu(n); else if(n.kind==='leaf'&&!n.out) outMenu(n); }
+
+/* ---------- 連線規則 ---------- */
+function isAncestor(a,b){ // a 是 b 的祖先？
+  let cur=b; const seen=new Set();
+  while(true){ const e=T.edges.find(x=>x.to===cur); if(!e||seen.has(cur)) return false; if(e.from===a) return true; seen.add(cur); cur=e.from; }
+}
+function tryConnect(from,to,x,y){
+  const a=T.nodes.find(n=>n.id===from), b=T.nodes.find(n=>n.id===to); drawTree();
+  if(!a||!b||a===b) return;
+  if(a.kind==='leaf') return toast('葉節點是最後的結果，下面不能再接東西。');
+  if(b.kind==='root') return toast('根節點是最上面的第一個問題，不能有線接進去。');
+  if(T.edges.some(e=>e.from===from&&e.to===to)) return toast('這兩個已經接起來了');
+  if(T.edges.some(e=>e.to===to)) return toast('每個節點只能有一條線進來。要改的話，先刪掉原本那條線。');
+  if(isAncestor(to,from)) return toast('決策樹不能繞回上面。要重複做的事，是樹外面的重複流程。');
+  if(!a.var){ toast('先幫這個節點選要問什麼問題'); return varMenu(a); }
+  condMenu(a,null,cond=>{ snap(); T.edges.push({id:'e'+(T.seq++),from,to,cond}); changed(); },x,y);
+}
+
+/* ---------- 小選單 ---------- */
+function closeTPop(){ const p=$('#tpop'); if(p) p.remove(); }
+function pop(html,x,y,w){
+  closeTPop(); const cv=$('#tcv'); const p=document.createElement('div'); p.className='pop'; p.id='tpop'; if(w) p.style.width=w+'px'; else p.style.width='auto';
+  p.innerHTML=html; p.setAttribute('role','dialog');
+  const sc=$('#tscroll'); const sx=sc?sc.scrollLeft:0, sy=sc?sc.scrollTop:0;
+  p.style.left=Math.max(8,Math.min(x*T.scale-sx+12,cv.clientWidth-(w||240)-12))+'px'; p.style.top=Math.max(8,Math.min(y*T.scale-sy+12,cv.clientHeight-220))+'px';
+  p.addEventListener('pointerdown',e=>e.stopPropagation());
+  cv.appendChild(p); const f=p.querySelector('button,input,select'); if(f) f.focus(); return p;
+}
+function nodeMenu(n){
+  const q=curQ(); const d=nodeDims(n); const lv=q.level;
+  const canVar = n.kind!=='leaf' && (lv==='free'||lv==='design');
+  const canOut = n.kind==='leaf' && lv!=='cards';
+  const canDel = !(lv==='skeleton');
+  const p=pop(`<div class="row" style="flex-wrap:wrap">${canVar?'<button class="sm" data-m="var">改問題</button>':''}${canOut?'<button class="sm" data-m="out">改結果</button>':''}${n.kind!=='leaf'?'<button class="sm" data-m="link">從這裡連線</button>':''}${canDel?`<button class="sm" data-m="del" style="color:var(--danger-soft);border-color:var(--danger)">${lv==='cards'?'放回左邊':'刪除'}</button>`:''}</div>`,n.x+d.w,n.y);
+  p.onclick=e=>{ const m=e.target.closest('[data-m]'); if(!m) return; const k=m.dataset.m;
+    if(k==='var') varMenu(n); if(k==='out') outMenu(n);
+    if(k==='link'){ closeTPop(); T.linkFrom=n.id; drawTree(); }
+    if(k==='del'){ closeTPop(); snap(); T.edges=T.edges.filter(e=>e.from!==n.id&&e.to!==n.id); T.nodes=T.nodes.filter(x=>x!==n); if(lv==='cards') T.tray.push({id:n.card,kind:n.kind,var:n.var,out:n.out}); T.sel=null; saveT(); redrawPanel(); drawTree(); } };
+}
+function varMenu(n){
+  const vars=varsOf(); const d=nodeDims(n);
+  if(!vars.length) return toast('先到左邊「變數」分頁新增條件');
+  const p=pop(`<span class="small" style="color:var(--text-2)">這個節點要問什麼？</span><div style="display:flex;flex-direction:column;gap:6px">${vars.map(v=>`<button class="sm" data-v="${v.key}" style="text-align:left">${esc(v.label)}</button>`).join('')}</div>`,n.x+d.w,n.y,240);
+  p.onclick=e=>{ const b=e.target.closest('[data-v]'); if(!b) return; snap(); if(n.var!==b.dataset.v) T.edges=T.edges.filter(x=>x.from!==n.id); n.var=b.dataset.v; closeTPop(); changed(); };
+}
+function outMenu(n){
+  const outs=outsOf(); const d=nodeDims(n);
+  if(!outs.length) return toast('先到左邊「結果」分頁新增結果');
+  const p=pop(`<span class="small" style="color:var(--text-2)">這個葉節點的結果是？</span><div style="display:flex;flex-direction:column;gap:6px">${outs.map(o=>`<button class="sm" data-o="${esc(o)}" style="text-align:left">${esc(o)}</button>`).join('')}</div>`,n.x+d.w,n.y,220);
+  p.onclick=e=>{ const b=e.target.closest('[data-o]'); if(!b) return; snap(); n.out=b.dataset.o; closeTPop(); changed(); };
+}
+function condMenu(node,edge,cb,x,y){
+  const v=varBy(node.var); const used=T.edges.filter(e=>e.from===node.id&&e!==edge).map(e=>condLabel(v,e.cond));
+  let html=`<span class="small" style="color:var(--text-2)">「${esc(v.label)}」這條線的條件是？</span>`;
+  if(v.type==='bool') html+=`<div class="row">${[true,false].map(b=>`<button class="sm" data-b="${b}" style="flex:1">${esc(b?v.t:v.f)}${used.includes(b?v.t:v.f)?'<br><span class="small faint">已用過</span>':''}</button>`).join('')}</div>`;
+  else if(v.type==='enum') html+=`<div style="display:flex;flex-direction:column;gap:4px">${v.values.map(x=>`<label class="small" style="display:flex;gap:6px;align-items:center"><input type="checkbox" value="${esc(x)}" ${edge&&edge.cond.vals.includes(x)?'checked':''} style="min-height:0">${esc(x)}</label>`).join('')}</div><span class="small faint">可以勾一個或好幾個</span><button class="sm primary" data-ok="1">確定</button>`;
+  else { const c=edge?edge.cond:{op:'<',v:v.crit&&v.crit[0]!=null?v.crit[0]:v.min};
+    html+=`<div class="row" style="align-items:center"><select id="cop" style="min-height:34px">${[['<','小於 <'],['<=','小於等於 ≤'],['>','大於 >'],['>=','大於等於 ≥'],['==','等於 ='],['!=','不等於 ≠'],['between','介於']].map(([o,t])=>`<option value="${o}" ${c.op===o?'selected':''}>${t}</option>`).join('')}</select></div>
+      <div class="row" style="align-items:center"><input id="cv1" type="number" min="${v.min}" max="${v.max}" value="${c.op==='between'?c.lo:c.v}" style="width:80px;min-height:34px"><span id="cbt" style="${c.op==='between'?'':'display:none'}">～ <input id="cv2" type="number" min="${v.min}" max="${v.max}" value="${c.op==='between'?c.hi:v.max}" style="width:80px;min-height:34px"></span><span class="small">${esc(v.unit||'')}</span></div>
+      <span class="small faint">範圍 ${v.min}～${v.max}${esc(v.unit||'')}</span><span class="small" id="cerr" style="color:var(--danger-soft)"></span><button class="sm primary" data-ok="1">確定</button>`; }
+  const p=pop(html,x,y,250);
+  const sel=p.querySelector('#cop'); if(sel) sel.onchange=()=>{p.querySelector('#cbt').style.display=sel.value==='between'?'':'none'};
+  p.onclick=e=>{
+    const b=e.target.closest('[data-b]'); if(b){ closeTPop(); cb({op:'is',v:b.dataset.b==='true'}); return; }
+    if(!e.target.closest('[data-ok]')) return;
+    if(v.type==='enum'){ const vals=[...p.querySelectorAll('input[type=checkbox]:checked')].map(i=>i.value); if(!vals.length) return toast('至少勾一個'); closeTPop(); cb({op:'in',vals}); return; }
+    const op=p.querySelector('#cop').value, a=parseInt(p.querySelector('#cv1').value), bb=parseInt(p.querySelector('#cv2').value);
+    const err=t=>{p.querySelector('#cerr').textContent=t};
+    if(isNaN(a)) return err('請填數字');
+    if(a<v.min||a>v.max) return err(`數字要在 ${v.min}～${v.max} 之間`);
+    if(op==='between'){ if(isNaN(bb)||bb<v.min||bb>v.max) return err(`數字要在 ${v.min}～${v.max} 之間`); if(bb<a) return err('後面的數字要比前面大'); closeTPop(); cb({op:'between',lo:a,hi:bb}); return; }
+    closeTPop(); cb({op,v:a});
+  };
+}
+function edgeMenu(eid,x,y){
+  const e=T.edges.find(z=>z.id===eid); if(!e) return;
+  const p=pop(`<div class="row"><button class="sm" data-m="cond">改條件</button><button class="sm" data-m="del" style="color:var(--danger-soft);border-color:var(--danger)">刪除這條線</button></div>`,x,y);
+  p.onclick=ev=>{ const m=ev.target.closest('[data-m]'); if(!m) return;
+    if(m.dataset.m==='del'){ closeTPop(); snap(); T.edges=T.edges.filter(z=>z!==e); T.selEdge=null; changed(); }
+    if(m.dataset.m==='cond'){ const from=T.nodes.find(n=>n.id===e.from); condMenu(from,e,cond=>{ snap(); e.cond=cond; changed(); },x,y); } };
+}
+
+/* ---------- 測試你的樹 ---------- */
+let animT=null;
+function testPanel(){
+  closeTPop(); const old=$('#ttest'); if(old){ old.remove(); return; }
+  const vars=varsOf(); if(!vars.length) return toast('先新增變數');
+  const q=curQ(); const cv=$('#tcv'); const p=document.createElement('div'); p.className='resbar'; p.id='ttest';
+  p.style.flexDirection='column'; p.style.alignItems='stretch'; p.style.maxHeight='46%'; p.style.overflow='auto';
+  const field=v=> v.type==='bool'?`<select id="ti_${v.key}" style="min-height:34px"><option value="true">${esc(v.t)}</option><option value="false">${esc(v.f)}</option></select>`
+    : v.type==='enum'?`<select id="ti_${v.key}" style="min-height:34px">${v.values.map(x=>`<option>${esc(x)}</option>`).join('')}</select>`
+    : `<input id="ti_${v.key}" type="number" min="${v.min}" max="${v.max}" value="${v.crit&&v.crit[0]!=null?v.crit[0]:v.min}" style="width:90px;min-height:34px">`;
+  const demo = TEACHER()&&q.tests&&q.tests.length ? `<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"><span class="small" style="color:var(--warning)">老師示範輸入：</span>${q.tests.map((t,i)=>`<button class="sm" data-demo="${i}">${esc(describe(t,vars))}</button>`).join('')}</div>`:'';
+  p.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center"><b>測試你的樹：選一種情況，看它會走到哪裡</b><button class="sm" data-tt="close">關閉</button></div>${demo}
+    <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center">${vars.map(v=>`<label class="small" style="display:flex;gap:6px;align-items:center">${esc(v.name)} ${field(v)}</label>`).join('')}<button class="primary sm" data-tt="run">執行</button></div>
+    <div id="tlog" class="small" style="line-height:1.8;color:var(--text-2)"></div>`;
+  p.addEventListener('pointerdown',e=>e.stopPropagation());
+  p.onclick=e=>{ const b=e.target.closest('[data-tt]'); const dm=e.target.closest('[data-demo]');
+    if(dm){ const t=q.tests[+dm.dataset.demo]; vars.forEach(v=>{const el=$('#ti_'+v.key); if(el&&t[v.key]!==undefined) el.value=String(t[v.key])}); runTest(); return; }
+    if(!b) return; if(b.dataset.tt==='close'){ p.remove(); T.hl=null; drawTree(); } if(b.dataset.tt==='run') runTest(); };
+  cv.appendChild(p);
+}
+function runTest(){
+  const vars=varsOf(); const inp={};
+  for(const v of vars){ const el=$('#ti_'+v.key); let val=el.value; if(v.type==='bool') val=val==='true'; else if(v.type==='int'){ val=parseInt(val); if(isNaN(val)||val<v.min||val>v.max) return toast(`${v.name}要在 ${v.min}～${v.max} 之間`); } inp[v.key]=val; }
+  const r=route({nodes:T.nodes,edges:T.edges},inp,vars);
+  const log=$('#tlog'); const lines=[];
+  r.steps.forEach(s=>lines.push(`「${esc(s.v.label)}」${esc(s.v.name)}＝${esc(valText(s.v,s.val))} → 走「${esc(condLabel(s.v,s.edge.cond))}」`));
+  let end;
+  if(!r.err) end=`<b style="color:var(--success-soft)">結果：${esc(r.out)}</b>`;
+  else if(r.err==='noroot') end='<b style="color:var(--danger-soft)">還沒有根節點，沒辦法開始。</b>';
+  else if(r.err==='novar') end='<b style="color:var(--danger-soft)">有一個決策節點還沒選問題。</b>';
+  else if(r.err==='noout') end='<b style="color:var(--danger-soft)">走到一個還沒選結果的葉節點。</b>';
+  else if(r.err==='stuck') end=`<b style="color:var(--danger-soft)">在「${esc(r.v?r.v.label:'')}」找不到符合 ${esc(r.v?r.v.name+'＝'+valText(r.v,r.val):'')} 的分支，卡住了。</b>`;
+  else if(r.err==='overlap') end=`<b style="color:var(--danger-soft)">${esc(r.v.name)}＝${esc(valText(r.v,r.val))} 同時符合兩條分支，電腦不知道要走哪條。</b>`;
+  else end='<b style="color:var(--danger-soft)">走不下去了。</b>';
+  clearInterval(animT); let i=0; T.hl={nodes:new Set(),edges:new Set()}; log.innerHTML='';
+  const reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const stepFn=()=>{
+    if(i<r.path.length){ T.hl.nodes.add(r.path[i]); if(i>0) T.hl.edges.add(r.edges[i-1]); if(lines[i]) log.innerHTML+=`<div>${i+1}. ${lines[i]}</div>`; drawTree(); i++; }
+    else { clearInterval(animT); log.innerHTML+=`<div>${end}</div>`; }
+  };
+  if(reduce){ while(i<=r.path.length) stepFn(); } else { stepFn(); animT=setInterval(stepFn,650); }
+}
+
+/* ---------- 檢查答案 ---------- */
+function hideTRes(){ const r=$('#tres'); if(r) r.remove(); }
+function check(){
+  closeTPop(); const old=$('#ttest'); if(old) old.remove();
+  const q=curQ(); const res=grade(); T.result=res; T.hl=null; drawTree();
+  const key='tree:'+q.id; const att=store.get('treeAtt',{}); att[q.id]=(att[q.id]||0)+1; store.set('treeAtt',att);
+  if(res.ok){ S.done[key]=true; store.set('done',S.done); }
+  hideTRes(); const cv=$('#tcv'); const r=document.createElement('div'); r.className='resbar '+(res.ok?'ok':'bad'); r.id='tres';
+  r.style.flexDirection='column'; r.style.alignItems='stretch'; r.style.maxHeight='50%'; r.style.overflow='auto';
+  const ds=res.design;
+  r.innerHTML=`<div style="display:flex;gap:12px;align-items:center"><span class="dot">${res.ok?'✓':'!'}</span><div class="msg"><b>${res.ok?(ds?'完成！等老師看過你的設計':'全部正確！'):'還差一點'}</b>
+    <span>${q.level==='design'?`測試通過 ${res.passed}／${res.total} 筆`:`題目測試通過 ${res.passed}／${res.total} 種情況`}${res.ok&&!ds?'。你的樹在每一種情況都走到正確結果。':''}</span></div>
+    <button class="sm" data-tr="close">關閉</button>${res.ok&&TQ.indexOf(q)<TQ.length-1?'<button class="primary sm" data-tr="next">下一題</button>':''}</div>
+    ${ds?`<div class="small" style="display:grid;grid-template-columns:repeat(5,auto);gap:4px 14px;color:var(--text-2)"><span>結構 ${ds.sStruct}/30</span><span>條件 ${ds.sCond}/30</span><span>測試 ${ds.sTest}/25</span><span>說明 ${ds.sDesc}/15</span><b>總分 ${ds.total}</b></div><span class="small" style="color:var(--warning)">電腦只能檢查結構和你自己寫的測試；情境合不合理，要請老師看。</span>`:''}
+    ${res.issues.length?`<ul style="margin:0;padding-left:20px;font-size:14px;line-height:1.7">${res.issues.slice(0,4).map(i=>`<li>${esc(i)}</li>`).join('')}</ul>`:''}
+    ${res.counter?`<div style="font-size:14px;color:var(--danger-soft)">反例：${esc(res.counter)}</div>`:''}
+    ${res.warn.length&&!res.ok?`<div class="small muted">${esc(res.warn[0])}</div>`:''}
+    ${!res.ok?'<span class="small muted">紅色的節點和線是要檢查的地方。可以按「測試你的樹」自己試試看，或按左邊的「提示」。</span>':''}`;
+  r.addEventListener('pointerdown',e=>e.stopPropagation());
+  r.onclick=e=>{ const b=e.target.closest('[data-tr]'); if(!b) return; if(b.dataset.tr==='close'){ r.remove(); } if(b.dataset.tr==='next'){ start(TQ.indexOf(q)+1); } };
+  cv.appendChild(r);
+  let hint=res.ok?'':(res.issues[0]||res.counter||'');
+  if(q.explain&&T.explain) hint=(hint?hint+'｜':'')+'順序說明：'+T.explain.slice(0,80);
+  if(ds) hint=`總分 ${ds.total}（需教師檢視）｜`+(d=>d.title)(T.design)+(hint?'｜'+hint:'');
+  logResult({mode:'tree',qid:q.id,title:q.title,result:res.ok?(ds?'完成待檢視':'過關'):'未過',score:ds?`${ds.total}/100`:`${res.passed}/${res.total}`,attempt:att[q.id],hint});
+}
+
+/* ---------- 參考解法 ---------- */
+function showRef(){
+  const q=curQ();
+  if(q.level==='design'){ openModal(`<div style="display:flex;justify-content:space-between;align-items:center"><h2>評量重點</h2><button class="ghost sm" data-close="1">關閉</button></div><p>${esc(q.focus)}</p><ul style="line-height:1.8"><li>至少 3 個判斷節點、4 個葉節點、2 層判斷</li><li>每條線都有清楚的條件，不重疊、不漏掉</li><li>至少 5 筆測試，其中 1 筆是邊界或特殊情況</li><li>設計說明至少 30 字</li></ul><p class="small muted">開放題沒有標準答案，情境合理性由老師檢視。</p>`); return; }
+  const showIt=()=>{
+    T.refSeen=true; saveT();
+    const tr=treeFromRef(q.ref);
+    const tests=TEACHER()?`<h3 style="margin:8px 0 0">測試案例（老師模式）</h3><table class="symtab"><tbody>${q.tests.map(t=>`<tr><td style="width:auto;text-align:left">${esc(describe(t,q.vars))}</td><td>→ ${esc(q.rule(t))}</td></tr>`).join('')}</tbody></table>`:'';
+    openModal(`<div style="display:flex;justify-content:space-between;align-items:center"><h2>參考解法</h2><button class="ghost sm" data-close="1">關閉</button></div>
+      <p class="small muted">這是其中一種正確畫法。判斷順序不同、分支畫法不同，只要每種情況結果都對，也算正確。</p>
+      <div style="overflow:auto;background:var(--bg);border-radius:12px;padding:8px">${svgTree(tr,{vars:q.vars})}</div>${tests}`);
+    $('#modalbox').style.width='min(980px,100%)';
+  };
+  if(TEACHER()||T.refSeen) return showIt();
+  openModal(`<h2>確定要看參考解法嗎？</h2><p class="muted">建議先用完三個提示。看完之後，可以關掉自己再畫一次。</p><div class="actions"><button data-close="1">再想想</button><button class="primary" id="refgo">看參考解法</button></div>`);
+  $('#refgo').onclick=showIt;
+}
+
+/* ---------- 匯出 ---------- */
+function download(name,blob){ const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),2000); }
+function exportPng(){
+  if(!T.nodes.length) return toast('畫布是空的');
+  const svgStr=svgTree({nodes:T.nodes,edges:T.edges},{bg:true});
+  const img=new Image(); const url=URL.createObjectURL(new Blob([svgStr],{type:'image/svg+xml;charset=utf-8'}));
+  img.onload=()=>{ const c=document.createElement('canvas'); c.width=img.width*2; c.height=img.height*2; const x=c.getContext('2d'); x.scale(2,2); x.drawImage(img,0,0); URL.revokeObjectURL(url); c.toBlob(b=>{download(((T.design&&T.design.title)||curQ().title)+'-決策樹.png',b);toast('圖片已下載')},'image/png'); };
+  img.src=url;
+}
+function exportJson(){
+  const data={題目:curQ().title,學生:S.who,情境:T.design,nodes:T.nodes,edges:T.edges};
+  download(((T.design&&T.design.title)||'決策樹')+'.json',new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));
+}
+
+/* ---------- 迷宮（第 9 題） ---------- */
+const MAZES=[
+  {name:'迷宮 1',g:["#########","#S......#","#######.#","#.......#","#.#######","#......G#","#########"],dir:1},
+  {name:'迷宮 2',g:["#########","#S.....G#","###.#####","###.#####","#########"],dir:1},
+  {name:'迷宮 3',g:["#########","#..S....#","#.#####.#","#.#####.#","#.......#","####G####"],dir:1},
+];
+const DIRS=[[-1,0],[0,1],[1,0],[0,-1]]; const DIRZH=['北','東','南','西'];
+let MZ=null, mzTimer=null;
+function mzReset(i){
+  clearInterval(mzTimer); mzTimer=null;
+  const m=MAZES[i]; let s; m.g.forEach((row,r)=>{const c=row.indexOf('S'); if(c>=0) s=[r,c]});
+  MZ={i,r:s[0],c:s[1],d:m.dir,steps:0,seen:new Set(),trail:[[s[0],s[1]]],status:'ready',msg:'按「走一步」或「連續走」開始。',obs:null,speed:MZ?MZ.speed:500};
+}
+function mzOpen(r,c){ const g=MAZES[MZ.i].g; return g[r]&&g[r][c]&&g[r][c]!=='#'; }
+function mzObs(){ const L=(MZ.d+3)%4,R=(MZ.d+1)%4; const at=d=>mzOpen(MZ.r+DIRS[d][0],MZ.c+DIRS[d][1]); return {right:at(R),front:at(MZ.d),left:at(L)}; }
+function mzStep(){
+  if(!MZ||['goal','stop','loop','wall','err','limit'].includes(MZ.status)){ clearInterval(mzTimer); mzTimer=null; drawMaze(); return; }
+  const g=MAZES[MZ.i].g;
+  const key=MZ.r+','+MZ.c+','+MZ.d; if(MZ.seen.has(key)){ MZ.status='loop'; MZ.msg='陷入循環：機器人回到同一格、面向同一邊。這個規則在這個迷宮走不到終點（不代表你的樹錯了）。'; return mzEnd(); }
+  MZ.seen.add(key);
+  const inp=mzObs(); MZ.obs=inp; const vars=curQ().vars;
+  const r=route({nodes:T.nodes,edges:T.edges},inp,vars);
+  const sit=`右邊${inp.right?'能':'不能'}走、前方${inp.front?'能':'不能'}走、左邊${inp.left?'能':'不能'}走`;
+  if(r.err){ MZ.status='err'; MZ.msg=`你的樹在「${sit}」這種情況沒有給出動作。先按「檢查答案」看看。`; return mzEnd(); }
+  const act=r.out; T.hl={nodes:new Set(r.path),edges:new Set(r.edges)}; drawTree();
+  if(act==='停止'){ MZ.status='stop'; MZ.msg=inp.right||inp.front||inp.left?`你的樹在「${sit}」選了停止，但其實有路可以走。`:'三個方向都不通，機器人照規則停下來了（這個規則不會往回走）。'; return mzEnd(); }
+  let nd=MZ.d; if(act==='右轉前進') nd=(MZ.d+1)%4; else if(act==='左轉前進') nd=(MZ.d+3)%4; else if(act!=='前進'){ MZ.status='err'; MZ.msg=`「${act}」不是機器人看得懂的動作。`; return mzEnd(); }
+  const nr=MZ.r+DIRS[nd][0], nc=MZ.c+DIRS[nd][1];
+  if(!mzOpen(nr,nc)){ MZ.d=nd; MZ.status='wall'; MZ.msg=`碰壁了！在「${sit}」時你的樹選了「${act}」，但那邊不能走。`; return mzEnd(); }
+  MZ.d=nd; MZ.r=nr; MZ.c=nc; MZ.steps++; MZ.trail.push([nr,nc]); MZ.status='run'; MZ.msg=`第 ${MZ.steps} 步：${sit} → ${act}`;
+  if(g[nr][nc]==='G'){ MZ.status='goal'; MZ.msg=`到達終點！一共走了 ${MZ.steps} 步。`; return mzEnd(); }
+  if(MZ.steps>=150){ MZ.status='limit'; MZ.msg='走了 150 步還沒到，先停下來。'; return mzEnd(); }
+  drawMaze();
+}
+function mzEnd(){ clearInterval(mzTimer); mzTimer=null; drawMaze(); }
+function drawMaze(){
+  const p=$('#mazepanel'); if(!p) return; if(!MZ) mzReset(0);
+  const m=MAZES[MZ.i]; const cs=36, H=m.g.length, W=m.g[0].length;
+  let cells=''; m.g.forEach((row,r)=>[...row].forEach((ch,c)=>{ const x=c*cs,y=r*cs;
+    cells+= ch==='#'?`<rect x="${x}" y="${y}" width="${cs}" height="${cs}" fill="#3D3833"/>`:`<rect x="${x}" y="${y}" width="${cs}" height="${cs}" fill="#1C1A17" stroke="#262320"/>`;
+    if(ch==='G') cells+=`<rect x="${x+4}" y="${y+4}" width="${cs-8}" height="${cs-8}" rx="6" fill="#27342A" stroke="#9DBF9E" stroke-width="2"/><text x="${x+cs/2}" y="${y+cs/2}" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#B5D9B1">終點</text>`; }));
+  const trail=MZ.trail.map(([r,c])=>`<circle cx="${c*cs+cs/2}" cy="${r*cs+cs/2}" r="4" fill="#E0B35C" opacity=".5"/>`).join('');
+  const cx=MZ.c*cs+cs/2, cy=MZ.r*cs+cs/2; const ang=MZ.d*90;
+  const robot=`<g transform="translate(${cx} ${cy}) rotate(${ang})"><circle r="13" fill="#232B36" stroke="#8FA9C9" stroke-width="2"/><polygon points="0,-11 7,4 -7,4" fill="#8FA9C9"/></g>`;
+  const o=MZ.obs||mzObs();
+  const col={goal:'var(--success-soft)',stop:'var(--warning)',loop:'var(--warning)',wall:'var(--danger-soft)',err:'var(--danger-soft)',limit:'var(--warning)'}[MZ.status]||'var(--text-2)';
+  p.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center"><b>迷宮模擬</b><span class="small muted">每走一步，都用你的樹判斷一次</span></div>
+    <div style="display:flex;gap:6px">${MAZES.map((z,i)=>`<button class="tab sm ${i===MZ.i?'on':''}" data-mz="${i}" style="${i===MZ.i?'background:var(--primary);color:var(--on-primary)':''}">${z.name}</button>`).join('')}</div>
+    <div style="overflow:auto"><svg width="${W*cs}" height="${H*cs}" viewBox="0 0 ${W*cs} ${H*cs}" role="img" aria-label="迷宮，機器人在第 ${MZ.r} 列第 ${MZ.c} 行，面向${DIRZH[MZ.d]}">${cells}${trail}${robot}</svg></div>
+    <div class="small" style="display:flex;gap:10px"><span>右：${o.right?'✓ 能走':'✕ 不能'}</span><span>前：${o.front?'✓ 能走':'✕ 不能'}</span><span>左：${o.left?'✓ 能走':'✕ 不能'}</span><span class="muted">面向${DIRZH[MZ.d]}</span></div>
+    <div style="font-size:14px;line-height:1.6;color:${col}" aria-live="polite">${esc(MZ.msg)}</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap"><button class="sm" data-mzc="step">走一步</button><button class="sm primary" data-mzc="run">${mzTimer?'暫停':'連續走'}</button><button class="sm" data-mzc="reset">重設</button></div>
+    <label class="small" style="display:flex;gap:8px;align-items:center">速度<input type="range" id="mzspeed" min="100" max="1000" step="100" value="${1100-MZ.speed}" style="flex:1;min-height:0"></label>
+    <p class="small faint" style="margin:0;line-height:1.6">「檢查答案」只看你的單步決策樹對不對。迷宮走不到終點，可能是這個簡單規則本身的限制。</p>`;
+  p.onclick=e=>{ const z=e.target.closest('[data-mz]'); if(z){ mzReset(+z.dataset.mz); T.hl=null; drawTree(); drawMaze(); return; }
+    const c=e.target.closest('[data-mzc]'); if(!c) return; const k=c.dataset.mzc;
+    if(k==='step'){ if(mzTimer){clearInterval(mzTimer);mzTimer=null} if(['goal','stop','loop','wall','err','limit'].includes(MZ.status)) mzReset(MZ.i); mzStep(); }
+    if(k==='run'){ if(mzTimer){ clearInterval(mzTimer); mzTimer=null; drawMaze(); return; } if(['goal','stop','loop','wall','err','limit'].includes(MZ.status)) mzReset(MZ.i); mzTimer=setInterval(mzStep,MZ.speed); drawMaze(); }
+    if(k==='reset'){ mzReset(MZ.i); T.hl=null; drawTree(); drawMaze(); } };
+  const sp=$('#mzspeed'); if(sp) sp.oninput=()=>{ MZ.speed=1100-(+sp.value); if(mzTimer){ clearInterval(mzTimer); mzTimer=setInterval(mzStep,MZ.speed); } };
+}
+
+/* ---------- 綁定 ---------- */
+function bindPanel(){
+  const p=$('#tpanel'); if(!p) return;
+  p.onpointerdown=onPanelDown;
+  p.onkeydown=e=>{ const it=e.target.closest('[data-titem]'); if(it&&(e.key==='Enter'||e.key===' ')){ e.preventDefault(); const n=addFromTray(it.dataset.titem); if(n) afterAdd(n); } };
+  const ex=$('#texplain'); if(ex) ex.onchange=()=>{ T.explain=ex.value; saveT(); };
+  p.querySelectorAll('[data-d]').forEach(el=>el.onchange=()=>onDesignChange(el));
+}
+function bind(){
+  const app=$('#app');
+  app.onclick=ev=>{
+    const t=ev.target;
+    if(t.closest('[data-go]')){ leave(()=>{S.screen='home';render()}); return; }
+    const b=t.closest('[data-t]'); if(b){ act(b.dataset.t); return; }
+    const dt=t.closest('[data-dtab]'); if(dt){ T.dtab=dt.dataset.dtab; redrawPanel(); return; }
+    const dv=t.closest('[data-dv]'); if(dv){ onDesignBtn(dv.dataset.dv); return; }
+    const sy=t.closest('[data-act="symbols"]'); if(sy){ showSymbols(); return; }
+  };
+  bindPanel();
+  const cv=$('#tcv'); cv.onpointerdown=onCvDown;
+  document.onpointermove=onMove; document.onpointerup=onUp;
+  drawTree(); if(curQ().maze){ if(!MZ) mzReset(0); drawMaze(); }
+}
+function act(a){
+  if(a==='undo') return undo(); if(a==='redo') return redo();
+  if(a==='layout'){ if(!T.nodes.some(n=>n.kind==='root')) return toast('先放根節點才能整理'); snap(); layoutTree(T.nodes,T.edges); changed(); return; }
+  if(a==='zoomin'){ T.scale=Math.min(1.6,+(T.scale+0.1).toFixed(1)); drawTree(); return; }
+  if(a==='zoomout'){ T.scale=Math.max(0.5,+(T.scale-0.1).toFixed(1)); drawTree(); return; }
+  if(a==='reset'){ openModal(`<h2>重新作答這一題？</h2><p class="muted">畫布上的東西會清掉，提示次數保留。其他題目不受影響。</p><div class="actions"><button data-close="1">取消</button><button class="primary" id="tresetgo">清掉重來</button></div>`); $('#tresetgo').onclick=()=>{ const q=curQ(); const keep={hints:T.hints,design:T.design,explain:T.explain}; snap(); const f=freshState(q); T.nodes=f.nodes; T.edges=f.edges; T.tray=f.tray; T.seq=f.seq; Object.assign(T,keep); T.result=null; saveT(); closeModal(); redrawPanel(); drawTree(); if(MZ){mzReset(MZ.i);drawMaze()} }; return; }
+  if(a==='test') return testPanel();
+  if(a==='check') return check();
+  if(a==='hint'){ T.hints=Math.min(3,T.hints+1); saveT(); redrawPanel(); return; }
+  if(a==='ref') return showRef();
+  if(a==='cancellink'){ T.linkFrom=null; drawTree(); return; }
+  if(a==='png') return exportPng(); if(a==='json') return exportJson();
+}
+function leave(cb){ clearInterval(mzTimer); mzTimer=null; clearInterval(animT); if(T) saveT(); cb(); }
+function start(i){
+  const q=TQ[i]; loadT(q); MZ=null; S.screen='tree'; S.mode='tree'; S.qi=i; S.qStart=Date.now(); render();
+}
+document.addEventListener('keydown',ev=>{
+  if(S.screen!=='tree'||!T) return; if(['INPUT','TEXTAREA','SELECT'].includes(ev.target.tagName)) return;
+  if(ev.key==='Escape'){ T.linkFrom=null; closeTPop(); drawTree(); return; }
+  if((ev.ctrlKey||ev.metaKey)&&ev.key.toLowerCase()==='z'){ ev.preventDefault(); ev.shiftKey?redo():undo(); return; }
+  if((ev.ctrlKey||ev.metaKey)&&ev.key.toLowerCase()==='y'){ ev.preventDefault(); redo(); return; }
+  const g=ev.target.closest&&ev.target.closest('.tn'); const n=g&&T.nodes.find(z=>z.id===g.dataset.nid);
+  if(n){ if(ev.key==='Enter'||ev.key===' '){ ev.preventDefault(); if(T.linkFrom&&T.linkFrom!==n.id){ const f=T.linkFrom; T.linkFrom=null; tryConnect(f,n.id,n.x,n.y);} else { T.sel=n.id; nodeMenu(n);} return; }
+    const mv={ArrowLeft:[-10,0],ArrowRight:[10,0],ArrowUp:[0,-10],ArrowDown:[0,10]}[ev.key];
+    if(mv){ ev.preventDefault(); n.x=Math.max(0,n.x+mv[0]); n.y=Math.max(0,n.y+mv[1]); saveT(); drawTree(); const el=document.querySelector(`.tn[data-nid="${n.id}"]`); if(el) el.focus(); return; } }
+  if((ev.key==='Delete'||ev.key==='Backspace')&&T.selEdge){ snap(); T.edges=T.edges.filter(e=>e.id!==T.selEdge); T.selEdge=null; closeTPop(); changed(); }
+});
+
+window.TreeMode={TQ,homeList,view:()=>{ if(!T) loadT(TQ[S.qi]||TQ[0]); return view(); },bind,start,count:TQcount,
+  _test:{grade,route,treeFromRef,get T(){return T},set T(v){T=v},loadT,mzReset,mzStep,get MZ(){return MZ},C}};
+})();
+
 </script>
 </body>
 </html>
